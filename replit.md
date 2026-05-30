@@ -45,8 +45,6 @@ Users paste their website URL → Claude generates a relevance rubric + keyword 
 Required:
 - `DATABASE_URL` — Postgres connection string (already set by Replit)
 - `ANTHROPIC_API_KEY` — for rubric generation and item scoring
-- `REDDIT_CLIENT_ID` — Reddit OAuth "script" app
-- `REDDIT_CLIENT_SECRET` — Reddit OAuth secret
 
 Optional (app works without them):
 - `X_BEARER_TOKEN` — X/Twitter API v2 bearer token

@@ -79,10 +79,9 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ── Reddit ────────────────────────────────────────────────────────────────────
-REDDIT_CLIENT_ID = os.environ.get('REDDIT_CLIENT_ID', '')
-REDDIT_CLIENT_SECRET = os.environ.get('REDDIT_CLIENT_SECRET', '')
-REDDIT_USER_AGENT = os.environ.get('REDDIT_USER_AGENT', 'Overheard/1.0 (digest tool; contact via site)')
+# ── Reddit (public JSON — no credentials needed) ──────────────────────────────
+# Reddit fetching uses the public /search.json endpoint with a User-Agent header.
+# No API key or OAuth credentials are required.
 
 # ── X / Twitter (optional) ────────────────────────────────────────────────────
 X_BEARER_TOKEN = os.environ.get('X_BEARER_TOKEN', '')

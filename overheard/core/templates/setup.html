@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Setup — Overheard{% endblock %}
+
+{% block content %}
+<div class="container container--narrow">
+  <div class="page-header">
+    <h1>{% if editing %}Edit topic{% else %}Add a topic{% endif %}</h1>
+    <p class="page-header__sub">
+      {% if editing %}
+        Update the rubric or keywords for this topic.
+      {% else %}
+        Paste your website URL and we'll use Claude to figure out what conversations to watch for.
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="card">
+    {% if editing %}
+      <form method="post" action="{% url 'topic_edit' editing.pk %}">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="field">
+          <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+          {% for err in field.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+        </div>
+        {% endfor %}
+        {% for err in form.non_field_errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+        <div class="form-actions">
+          <button type="submit" class="btn btn--primary">Save changes</button>
+          <a href="{% url 'setup' %}" class="btn btn--ghost">Cancel</a>
+        </div>
+      </form>
+    {% else %}
+      <form method="post" action="{% url 'setup' %}">
+        {% csrf_token %}
+        <div class="field">
+          <label class="label" for="{{ form.url.id_for_label }}">{{ form.url.label }}</label>
+          {{ form.url }}
+          {% if form.url.help_text %}<p class="help">{{ form.url.help_text }}</p>{% endif %}
+          {% for err in form.url.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+        </div>
+        <div class="field">
+          <label class="label" for="{{ form.score_threshold.id_for_label }}">{{ form.score_threshold.label }}</label>
+          {{ form.score_threshold }}
+          {% if form.score_threshold.help_text %}<p class="help">{{ form.score_threshold.help_text }}</p>{% endif %}
+          {% for err in form.score_threshold.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+        </div>
+        {% for err in form.non_field_errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+        <div class="form-actions">
+          <button type="submit" class="btn btn--primary">Generate rubric &amp; keywords &rarr;</button>
+        </div>
+        <p class="help" style="margin-top:12px;">This takes 5–10 seconds — Claude reads your page and builds the rubric.</p>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if topics %}
+  <h2 class="section-heading">Your topics</h2>
+  <ul class="topic-list">
+    {% for topic in topics %}
+    <li class="topic-card {% if editing and editing.pk == topic.pk %}topic-card--active{% endif %}">
+      <div class="topic-card__header">
+        <a href="{{ topic.url }}" target="_blank" rel="noopener" class="topic-card__url">{{ topic.url }}</a>
+        <span class="badge">threshold {{ topic.score_threshold }}</span>
+      </div>
+      <details class="topic-card__details">
+        <summary>Rubric &amp; keywords</summary>
+        <p class="topic-card__rubric">{{ topic.rubric }}</p>
+        <div class="topic-card__keywords">
+          {% for kw in topic.keywords %}<span class="kw-tag">{{ kw }}</span>{% endfor %}
+        </div>
+      </details>
+      <div class="topic-card__actions">
+        <a href="{% url 'topic_edit' topic.pk %}" class="btn btn--sm btn--ghost">Edit</a>
+        <form method="post" action="{% url 'topic_delete' topic.pk %}" style="display:inline" onsubmit="return confirm('Delete this topic?')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn--sm btn--danger">Delete</button>
+        </form>
+        <span class="topic-card__meta">{{ topic.items.count }} match{{ topic.items.count|pluralize }}</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <div class="setup-help card" style="margin-top:32px;">
+    <h3>Running the poller</h3>
+    <p>Once your topic is set up, run this command (or schedule it as a Render cron job):</p>
+    <pre class="code-block">python manage.py poll</pre>
+    <p>To send the digest:</p>
+    <pre class="code-block">python manage.py send_digest</pre>
+    <p class="help">You'll need <code>ANTHROPIC_API_KEY</code>, <code>REDDIT_CLIENT_ID</code>, and <code>REDDIT_CLIENT_SECRET</code> set as environment variables.</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Overheard{% endblock %}</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav__inner">
+    <a href="{% url 'index' %}" class="nav__logo">Overheard</a>
+
+    <button class="nav__burger" id="navBurger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+
+    <ul class="nav__links" id="navLinks">
+      <li><a href="{% url 'index' %}" class="nav__link {% if request.resolver_match.url_name == 'index' %}nav__link--active{% endif %}">Home</a></li>
+      <li><a href="{% url 'setup' %}" class="nav__link {% if 'setup' in request.resolver_match.url_name %}nav__link--active{% endif %}">Setup</a></li>
+      <li><a href="{% url 'dashboard' %}" class="nav__link {% if 'dashboard' in request.resolver_match.url_name %}nav__link--active{% endif %}">Dashboard</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="main">
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="message message--{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <p>Overheard &mdash; listen first, reply with care.</p>
+</footer>
+
+<script>
+  const burger = document.getElementById('navBurger');
+  const links  = document.getElementById('navLinks');
+  burger.addEventListener('click', () => {
+    const open = links.classList.toggle('nav__links--open');
+    burger.setAttribute('aria-expanded', open);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Overheard — hear the signal, skip the noise{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero__inner">
+    <span class="hero__tag">For small teams who'd rather help than hustle</span>
+    <h1 class="hero__headline">People are describing<br>your problem right now.</h1>
+    <p class="hero__sub">
+      Overheard quietly watches Reddit (and optionally X) for genuine conversations
+      where someone is stuck on the exact problem you solve — then delivers a clean
+      daily digest to your inbox. No auto-replies, no bots. Just the signal, so your
+      team can decide whether to help.
+    </p>
+    <a href="{% url 'setup' %}" class="btn btn--primary btn--lg">Get started &rarr;</a>
+  </div>
+</section>
+
+<section class="steps">
+  <div class="container">
+    <h2 class="steps__heading">How it works</h2>
+    <ol class="steps__list">
+      <li class="step">
+        <div class="step__num">1</div>
+        <div class="step__body">
+          <h3 class="step__title">Paste your site</h3>
+          <p class="step__desc">Drop in your homepage URL. Overheard reads it and asks Claude to build a relevance rubric — what the problem is, who has it, and what to look for.</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step__num">2</div>
+        <div class="step__body">
+          <h3 class="step__title">It listens and filters</h3>
+          <p class="step__desc">A scheduled job searches Reddit (and X if you add credentials) with your keywords. Every candidate goes through an AI intent filter — only genuine help-seekers make the cut.</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step__num">3</div>
+        <div class="step__body">
+          <h3 class="step__title">You get a clean digest</h3>
+          <p class="step__desc">Each morning (or whenever you run it), you get a short list: what they said, why it's relevant, and a suggested angle if you decide to reach out. Your team decides — Overheard never posts.</p>
+        </div>
+      </li>
+    </ol>
+    <div class="steps__cta">
+      <a href="{% url 'setup' %}" class="btn btn--primary">Set up your first topic &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<section class="note">
+  <div class="container note__inner">
+    <span class="note__icon">&#128064;</span>
+    <p>Overheard doesn't post, DM, or auto-reply to anyone. It's a read-only listener. What you do with the information is entirely up to you.</p>
+  </div>
+</section>
+{% endblock %}

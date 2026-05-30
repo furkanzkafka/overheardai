@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 def index(request):
-    return render(request, 'index.html')
+    if Topic.objects.exists():
+        return redirect('dashboard')
+    return redirect('setup')
 
 
 # ── Step 1: enter URL ────────────────────────────────────────────────────────

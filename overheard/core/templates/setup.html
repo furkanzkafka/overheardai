@@ -1,29 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}Add a topic — Overheard{% endblock %}
+{% block title %}Add your website — Overheard{% endblock %}
 
 {% block content %}
-<div class="container container--narrow">
+<div class="onboarding-wrap">
 
-  {% if not topics %}
-  <div class="onboarding-hero">
-    <h1>What problem does your product solve?</h1>
-    <p class="onboarding-sub">Paste your URL — Claude reads your page and figures out what Reddit conversations to watch for.</p>
+  <div class="onboarding-step">
+    <div class="onboarding-step__label">Step 1 of 2</div>
+    <h1>What's your website?</h1>
+    <p class="onboarding-step__sub">
+      Paste your URL — Claude reads it and works out exactly what Reddit conversations to watch for.
+    </p>
   </div>
-  {% else %}
-  <div class="page-header">
-    <h1>Add another topic</h1>
-  </div>
-  {% endif %}
 
-  <div class="card">
+  <div class="card card--centered">
     <form method="post" action="{% url 'setup' %}" id="setup-form">
       {% csrf_token %}
       <div class="field">
         {{ form.url }}
         {% for err in form.url.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
       </div>
-      <div class="form-actions">
+      <div class="form-actions form-actions--center">
         <button type="submit" class="btn btn--primary btn--lg" id="submit-btn">
           <span id="btn-text">Analyse my site &rarr;</span>
           <span id="btn-loading" hidden>Analysing&hellip; (5–10 s)</span>
@@ -31,28 +28,6 @@
       </div>
     </form>
   </div>
-
-  {% if topics %}
-  <h2 class="section-heading" style="margin-top:40px;">Tracked topics</h2>
-  <ul class="topic-list">
-    {% for topic in topics %}
-    <li class="topic-card">
-      <div class="topic-card__header">
-        <a href="{{ topic.url }}" target="_blank" rel="noopener" class="topic-card__url">{{ topic.url }}</a>
-        <span class="badge">{{ topic.items.count }} match{{ topic.items.count|pluralize:"es" }}</span>
-      </div>
-      <div class="topic-card__actions">
-        <a href="{% url 'topic_review' topic.pk %}" class="btn btn--sm btn--ghost">Edit rubric</a>
-        <form method="post" action="{% url 'topic_delete' topic.pk %}" style="display:inline"
-              onsubmit="return confirm('Delete this topic and all its matches?')">
-          {% csrf_token %}
-          <button type="submit" class="btn btn--sm btn--danger">Delete</button>
-        </form>
-      </div>
-    </li>
-    {% endfor %}
-  </ul>
-  {% endif %}
 
 </div>
 

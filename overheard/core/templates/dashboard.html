@@ -4,10 +4,19 @@
 {% block title %}Dashboard — Overheard{% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="page-header">
-    <h1>Dashboard</h1>
-    <p class="page-header__sub">Matched posts, filtered by intent. Read them, then decide.</p>
+<div class="container container--narrow">
+
+  <div class="dash-header">
+    <div>
+      <h1>Recent matches</h1>
+      <p class="dash-header__sub">Posts from Reddit that match your topic, scored by Claude.</p>
+    </div>
+    {% if topics %}
+    <div class="dash-header__meta">
+      Watching <strong>{{ topics.count }}</strong> topic{{ topics.count|pluralize }} &middot;
+      <a href="{% url 'setup' %}">add another</a>
+    </div>
+    {% endif %}
   </div>
 
   <div class="status-tabs">
@@ -15,7 +24,9 @@
     <a href="?status={{ s.value }}"
        class="status-tab {% if status_filter == s.value %}status-tab--active{% endif %}">
       {{ s.label }}
+      {% if counts|get_item:s.value %}
       <span class="status-tab__count">{{ counts|get_item:s.value }}</span>
+      {% endif %}
     </a>
     {% endfor %}
   </div>
@@ -24,31 +35,36 @@
   <ul class="item-list">
     {% for item in items %}
     <li class="item-card">
+
       <div class="item-card__header">
         <span class="badge badge--platform badge--{{ item.platform }}">{{ item.get_platform_display }}</span>
-        <a href="{{ item.source_url }}" target="_blank" rel="noopener" class="item-card__author">@{{ item.author }}</a>
-        <span class="item-card__score" title="Relevance score">{{ item.score }}/100</span>
-        <time class="item-card__time" datetime="{{ item.fetched_at|date:'c' }}">{{ item.fetched_at|date:"M j, g:i a" }}</time>
+        <span class="item-card__score">{{ item.score }}/100</span>
+        <time class="item-card__time" datetime="{{ item.fetched_at|date:'c' }}">{{ item.fetched_at|date:"M j" }}</time>
       </div>
 
-      <blockquote class="item-card__snippet">{{ item.text_snippet|truncatechars:400 }}</blockquote>
+      <blockquote class="item-card__snippet">{{ item.text_snippet|truncatechars:350 }}</blockquote>
 
-      <dl class="item-card__meta">
-        <dt>Why relevant</dt>
-        <dd>{{ item.why_relevant }}</dd>
-        <dt>What they want</dt>
-        <dd>{{ item.what_theyre_asking }}</dd>
-        <dt>Suggested angle</dt>
-        <dd>{{ item.suggested_angle }}</dd>
-      </dl>
+      <div class="item-card__why">
+        <strong>Why it fits:</strong> {{ item.why_relevant }}
+      </div>
 
-      {% if item.status == 'new' or item.status == 'sent' %}
+      {% if item.suggested_angle %}
+      <div class="item-card__angle">
+        <strong>Angle if you reply:</strong> {{ item.suggested_angle }}
+      </div>
+      {% endif %}
+
       <div class="item-card__actions">
+        <a href="{{ item.source_url }}" target="_blank" rel="noopener" class="btn btn--sm btn--outline">
+          View on {{ item.get_platform_display }} &rarr;
+        </a>
+
+        {% if item.status == 'new' or item.status == 'sent' %}
         <form method="post" action="{% url 'item_action' item.pk %}" style="display:inline">
           {% csrf_token %}
           <input type="hidden" name="next" value="dashboard">
           <input type="hidden" name="action" value="replied">
-          <button type="submit" class="btn btn--sm btn--success">Mark replied</button>
+          <button type="submit" class="btn btn--sm btn--success">Replied</button>
         </form>
         <form method="post" action="{% url 'item_action' item.pk %}" style="display:inline">
           {% csrf_token %}
@@ -56,28 +72,31 @@
           <input type="hidden" name="action" value="ignored">
           <button type="submit" class="btn btn--sm btn--ghost">Ignore</button>
         </form>
-        <a href="{{ item.source_url }}" target="_blank" rel="noopener" class="btn btn--sm btn--outline">View original &rarr;</a>
-      </div>
-      {% else %}
-      <div class="item-card__actions">
+        {% else %}
         <span class="item-card__status-label">{{ item.get_status_display }}</span>
-        <a href="{{ item.source_url }}" target="_blank" rel="noopener" class="btn btn--sm btn--outline">View original &rarr;</a>
+        {% endif %}
       </div>
-      {% endif %}
+
     </li>
     {% endfor %}
   </ul>
+
   {% else %}
   <div class="empty-state">
     <p class="empty-state__icon">&#128226;</p>
-    <h2>Nothing here yet</h2>
-    {% if status_filter == 'new' %}
-      <p>Overheard runs automatically on your schedule. First match will appear here soon.</p>
-      <a href="{% url 'setup' %}" class="btn btn--primary" style="margin-top:16px;">Check setup &amp; schedule &rarr;</a>
+    {% if not topics %}
+      <h2>No topics yet</h2>
+      <p>Add your website and Overheard will start watching Reddit for relevant conversations.</p>
+      <a href="{% url 'setup' %}" class="btn btn--primary" style="margin-top:20px;">Add your website &rarr;</a>
+    {% elif status_filter == 'new' %}
+      <h2>Nothing new yet</h2>
+      <p>Overheard runs daily and will surface matches here. Check back tomorrow.</p>
     {% else %}
+      <h2>Nothing here</h2>
       <p>No items with this status.</p>
     {% endif %}
   </div>
   {% endif %}
+
 </div>
 {% endblock %}

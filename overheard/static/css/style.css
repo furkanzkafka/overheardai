@@ -336,3 +336,38 @@ code { font-family: var(--mono); font-size: .85em; background: var(--accent-lt);
 .settings-section-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 .settings-icon { font-size: 1rem; }
 .settings-note { font-size: .82rem; color: var(--ink-faint); margin-top: 8px; line-height: 1.5; }
+
+/* ─── Stepped onboarding wrap ─────────────────────────────────────────────── */
+.onboarding-wrap {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.onboarding-step { padding: 48px 0 28px; }
+.onboarding-step__label {
+  font-size: .75rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+}
+.onboarding-step h1 {
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 800; line-height: 1.2; margin-bottom: 10px;
+}
+.onboarding-step__sub { font-size: 1rem; color: var(--ink-soft); }
+.card--centered { max-width: 520px; }
+.form-actions--center { text-align: center; margin-top: 4px; }
+
+/* ─── Dashboard header ─────────────────────────────────────────────────────── */
+.dash-header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 12px; padding: 40px 0 20px; flex-wrap: wrap;
+}
+.dash-header h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 2px; }
+.dash-header__sub { font-size: .9rem; color: var(--ink-soft); }
+.dash-header__meta { font-size: .85rem; color: var(--ink-soft); white-space: nowrap; }
+
+/* ─── Item card why/angle ──────────────────────────────────────────────────── */
+.item-card__why, .item-card__angle {
+  font-size: .875rem; color: var(--ink-soft);
+  margin-bottom: 10px; line-height: 1.5;
+}
+.item-card__why strong, .item-card__angle strong { color: var(--ink); }

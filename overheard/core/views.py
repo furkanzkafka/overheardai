@@ -41,9 +41,14 @@ def setup(request):
                 messages.error(request, f"AI step failed — is ANTHROPIC_API_KEY set? ({exc})")
                 return render(request, 'setup.html', {'form': form, 'topics': topics})
 
+            # Prevent duplicates
+            if Topic.objects.filter(url=url).exists():
+                messages.warning(request, "A topic for that URL already exists. Edit it below.")
+                return redirect('setup')
+
             Topic.objects.create(url=url, rubric=rubric, keywords=keywords, score_threshold=60)
             messages.success(request, "Topic created — Overheard is now watching Reddit for matches.")
-            return redirect('setup')
+            return redirect('dashboard')
 
     return render(request, 'setup.html', {'form': form, 'topics': topics})
 

@@ -48,10 +48,23 @@
         </div>
         {% for err in form.non_field_errors %}<p class="field-error">{{ err }}</p>{% endfor %}
         <div class="form-actions">
-          <button type="submit" class="btn btn--primary">Generate rubric &amp; keywords &rarr;</button>
+          <button type="submit" class="btn btn--primary" id="submit-btn">
+            <span id="btn-text">Generate rubric &amp; keywords &rarr;</span>
+            <span id="btn-loading" style="display:none;">&#9656; Analysing your page&hellip;</span>
+          </button>
         </div>
-        <p class="help" style="margin-top:12px;">This takes 5–10 seconds — Claude reads your page and builds the rubric.</p>
+        <p class="help" style="margin-top:12px;" id="submit-hint">This takes 5–10 seconds — Claude reads your page and builds the rubric.</p>
       </form>
+      <script>
+        document.querySelector('form').addEventListener('submit', function() {
+          var btn = document.getElementById('submit-btn');
+          btn.disabled = true;
+          btn.style.opacity = '0.7';
+          document.getElementById('btn-text').style.display = 'none';
+          document.getElementById('btn-loading').style.display = 'inline';
+          document.getElementById('submit-hint').textContent = 'Working… this usually takes 5–10 seconds.';
+        });
+      </script>
     {% endif %}
   </div>
 
@@ -62,7 +75,7 @@
     <li class="topic-card {% if editing and editing.pk == topic.pk %}topic-card--active{% endif %}">
       <div class="topic-card__header">
         <a href="{{ topic.url }}" target="_blank" rel="noopener" class="topic-card__url">{{ topic.url }}</a>
-        <span class="badge">{{ topic.items.count }} match{{ topic.items.count|pluralize }}</span>
+        <span class="badge">{{ topic.items.count }} match{{ topic.items.count|pluralize:"es" }}</span>
       </div>
       <details class="topic-card__details">
         <summary>Rubric &amp; keywords</summary>

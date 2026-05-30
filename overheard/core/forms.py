@@ -7,11 +7,17 @@ class TopicSetupForm(forms.Form):
     url = forms.URLField(
         label="Your website URL",
         widget=forms.URLInput(attrs={
-            'placeholder': 'https://yoursite.com',
+            'placeholder': 'yoursite.com',
             'class': 'input',
         }),
         help_text="Paste your homepage or product page — we'll read it to understand what you do.",
     )
+
+    def clean_url(self):
+        url = self.cleaned_data['url'].strip()
+        if url and not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        return url
 
 
 class TopicEditForm(forms.ModelForm):

@@ -1,5 +1,7 @@
 """
-Compose and send the digest via email (SMTP) and Slack webhook.
+Compose and send the daily digest via email (SMTP) and Slack webhook.
+Notification targets are read from NotificationSettings (DB) first,
+falling back to environment variables.
 """
 import logging
 import smtplib
@@ -10,9 +12,16 @@ import requests
 from django.conf import settings
 from django.utils import timezone
 
-from .models import MatchedItem
+from .models import MatchedItem, NotificationSettings
 
 logger = logging.getLogger(__name__)
+
+
+def _notif_settings():
+    try:
+        return NotificationSettings.get()
+    except Exception:
+        return None
 
 
 def _render_html(items):
@@ -52,15 +61,20 @@ def _render_text(items):
 
 
 def send_email_digest(items: list) -> bool:
-    if not all([settings.SMTP_HOST, settings.SMTP_USER, settings.SMTP_PASS,
-                settings.FROM_EMAIL, settings.DIGEST_TO_EMAIL]):
-        logger.warning("SMTP not fully configured — skipping email digest.")
+    ns = _notif_settings()
+    to_email = (ns.digest_to_email if ns else '') or settings.DIGEST_TO_EMAIL
+
+    if not to_email:
+        logger.info("No digest email configured — skipping email.")
+        return False
+    if not all([settings.SMTP_HOST, settings.SMTP_USER, settings.SMTP_PASS, settings.FROM_EMAIL]):
+        logger.warning("SMTP credentials incomplete — skipping email digest.")
         return False
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"Overheard: {len(items)} new match{'es' if len(items) != 1 else ''}"
     msg["From"] = settings.FROM_EMAIL
-    msg["To"] = settings.DIGEST_TO_EMAIL
+    msg["To"] = to_email
     msg.attach(MIMEText(_render_text(items), "plain"))
     msg.attach(MIMEText(_render_html(items), "html"))
 
@@ -69,8 +83,8 @@ def send_email_digest(items: list) -> bool:
             server.ehlo()
             server.starttls()
             server.login(settings.SMTP_USER, settings.SMTP_PASS)
-            server.sendmail(settings.FROM_EMAIL, settings.DIGEST_TO_EMAIL, msg.as_string())
-        logger.info("Email digest sent to %s", settings.DIGEST_TO_EMAIL)
+            server.sendmail(settings.FROM_EMAIL, to_email, msg.as_string())
+        logger.info("Email digest sent to %s", to_email)
         return True
     except Exception as exc:
         logger.error("Email digest failed: %s", exc)
@@ -78,15 +92,18 @@ def send_email_digest(items: list) -> bool:
 
 
 def send_slack_digest(items: list) -> bool:
-    if not settings.SLACK_WEBHOOK_URL:
-        logger.info("SLACK_WEBHOOK_URL not set — skipping Slack digest.")
+    ns = _notif_settings()
+    webhook = (ns.slack_webhook_url if ns else '') or settings.SLACK_WEBHOOK_URL
+
+    if not webhook:
+        logger.info("No Slack webhook configured — skipping.")
         return False
 
     blocks = [{
         "type": "header",
         "text": {"type": "plain_text", "text": f"Overheard: {len(items)} new match{'es' if len(items) != 1 else ''}"},
     }]
-    for item in items[:10]:  # Slack blocks have a 50-block limit; cap at 10 items
+    for item in items[:10]:
         blocks.append({"type": "divider"})
         blocks.append({
             "type": "section",
@@ -108,7 +125,7 @@ def send_slack_digest(items: list) -> bool:
         })
 
     try:
-        resp = requests.post(settings.SLACK_WEBHOOK_URL, json={"blocks": blocks}, timeout=10)
+        resp = requests.post(webhook, json={"blocks": blocks}, timeout=10)
         resp.raise_for_status()
         logger.info("Slack digest sent.")
         return True
@@ -118,10 +135,6 @@ def send_slack_digest(items: list) -> bool:
 
 
 def send_digest() -> dict:
-    """
-    Find all NEW items, send email + Slack, mark them as SENT.
-    Returns a summary dict.
-    """
     items = list(MatchedItem.objects.filter(status=MatchedItem.Status.NEW).order_by('-score', '-fetched_at'))
     if not items:
         logger.info("No new items to digest.")

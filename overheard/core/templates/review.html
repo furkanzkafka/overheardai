@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Review topic — Overheard{% endblock %}
+
+{% block content %}
+<div class="container container--narrow">
+
+  <div class="review-header">
+    <div class="review-header__step">Step 2 of 2</div>
+    <h1>Review &amp; refine</h1>
+    <p class="page-header__sub">
+      Claude analysed <strong>{{ topic.url }}</strong> and generated this rubric and keyword list.
+      Tweak anything that looks off — this is what drives the filter.
+    </p>
+  </div>
+
+  <form method="post" action="{% url 'topic_review' topic.pk %}">
+    {% csrf_token %}
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="field">
+        <label class="label" for="{{ form.rubric.id_for_label }}">{{ form.rubric.label }}</label>
+        {{ form.rubric }}
+        {% if form.rubric.help_text %}<p class="help">{{ form.rubric.help_text }}</p>{% endif %}
+        {% for err in form.rubric.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:28px;">
+      <div class="field">
+        <label class="label" for="{{ form.keywords.id_for_label }}">{{ form.keywords.label }}</label>
+        {{ form.keywords }}
+        {% if form.keywords.help_text %}<p class="help">{{ form.keywords.help_text }}</p>{% endif %}
+        {% for err in form.keywords.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="form-actions form-actions--spread">
+      <a href="{% url 'setup' %}" class="btn btn--ghost">&larr; Back</a>
+      <button type="submit" class="btn btn--primary btn--lg">Looks good, start watching &rarr;</button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

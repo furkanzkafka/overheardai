@@ -3,9 +3,9 @@ from django.db import models
 
 class Topic(models.Model):
     url = models.URLField(max_length=500)
-    rubric = models.TextField(help_text="AI-generated relevance rubric — what the problem is, who has it, intent signals, and non-examples.")
-    keywords = models.JSONField(default=list, help_text="List of search queries/keywords for Reddit/X.")
-    score_threshold = models.IntegerField(default=60, help_text="Minimum AI score (0-100) to keep an item.")
+    rubric = models.TextField()
+    keywords = models.JSONField(default=list)
+    score_threshold = models.IntegerField(default=60)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -46,3 +46,27 @@ class MatchedItem(models.Model):
 
     class Meta:
         ordering = ['-fetched_at']
+
+
+class NotificationSettings(models.Model):
+    """Singleton — always access via NotificationSettings.get()"""
+    digest_to_email = models.EmailField(
+        blank=True, default='',
+        help_text="Email address to receive the daily digest.",
+    )
+    slack_webhook_url = models.CharField(
+        max_length=500, blank=True, default='',
+        help_text="Slack incoming webhook URL.",
+    )
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = "Notification settings"

@@ -1,16 +1,15 @@
 from django import forms
-from .models import Topic
+from .models import NotificationSettings, Topic
 
 
 class TopicSetupForm(forms.Form):
-    """Initial setup: just the URL. Score threshold defaults to 60."""
     url = forms.URLField(
         label="Your website URL",
         widget=forms.URLInput(attrs={
             'placeholder': 'yoursite.com',
-            'class': 'input',
+            'class': 'input input--xl',
+            'autofocus': True,
         }),
-        help_text="Paste your homepage or product page — we'll read it to understand what you do.",
     )
 
     def clean_url(self):
@@ -20,25 +19,24 @@ class TopicSetupForm(forms.Form):
         return url
 
 
-class TopicEditForm(forms.ModelForm):
+class TopicReviewForm(forms.ModelForm):
     keywords = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'input', 'rows': 4}),
-        help_text="One keyword or phrase per line.",
+        label="Keywords",
+        widget=forms.Textarea(attrs={'class': 'input', 'rows': 6}),
+        help_text="One search query per line. Claude generated these — add, remove, or tweak as you see fit.",
     )
 
     class Meta:
         model = Topic
-        fields = ['url', 'rubric', 'keywords', 'score_threshold']
+        fields = ['rubric', 'keywords']
         widgets = {
-            'url': forms.URLInput(attrs={'class': 'input'}),
-            'rubric': forms.Textarea(attrs={'class': 'input', 'rows': 6}),
-            'score_threshold': forms.NumberInput(attrs={'class': 'input input--narrow'}),
+            'rubric': forms.Textarea(attrs={'class': 'input', 'rows': 7}),
         }
         labels = {
-            'score_threshold': 'Quality bar (0–100)',
+            'rubric': 'Relevance rubric',
         }
         help_texts = {
-            'score_threshold': 'Only keep posts scoring at or above this. 60 = average match quality.',
+            'rubric': "Describes who you want to reach and what qualifies as a genuine match. Edit freely.",
         }
 
     def __init__(self, *args, **kwargs):
@@ -50,8 +48,7 @@ class TopicEditForm(forms.ModelForm):
 
     def clean_keywords(self):
         raw = self.cleaned_data['keywords']
-        lines = [line.strip() for line in raw.splitlines() if line.strip()]
-        return lines
+        return [line.strip() for line in raw.splitlines() if line.strip()]
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -59,3 +56,17 @@ class TopicEditForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class NotificationSettingsForm(forms.ModelForm):
+    class Meta:
+        model = NotificationSettings
+        fields = ['digest_to_email', 'slack_webhook_url']
+        widgets = {
+            'digest_to_email': forms.EmailInput(attrs={'class': 'input', 'placeholder': 'you@yourcompany.com'}),
+            'slack_webhook_url': forms.URLInput(attrs={'class': 'input', 'placeholder': 'https://hooks.slack.com/services/…'}),
+        }
+        labels = {
+            'digest_to_email': 'Send digest to',
+            'slack_webhook_url': 'Slack webhook URL',
+        }

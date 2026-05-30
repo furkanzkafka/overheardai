@@ -317,3 +317,22 @@ code { font-family: var(--mono); font-size: .85em; background: var(--accent-lt);
 .field--inline { margin: 0; }
 .field--inline select { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: .9rem; background: var(--bg); color: var(--ink); cursor: pointer; }
 .field--inline select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-lt); }
+
+/* ─── Onboarding / setup ─────────────────────────────────────────────────────── */
+.onboarding-hero { text-align: center; padding: 56px 20px 32px; }
+.onboarding-hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; color: var(--ink); line-height: 1.2; margin-bottom: 12px; }
+.onboarding-sub { font-size: 1.05rem; color: var(--ink-soft); max-width: 480px; margin: 0 auto; }
+.input--xl { font-size: 1.1rem; padding: 14px 16px; }
+.btn--lg { font-size: 1rem; padding: 13px 28px; }
+
+/* ─── Review step ─────────────────────────────────────────────────────────────── */
+.review-header { padding: 40px 0 24px; }
+.review-header__step { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.review-header h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
+.form-actions--spread { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+/* ─── Settings ────────────────────────────────────────────────────────────────── */
+.settings-card { margin-bottom: 20px; }
+.settings-section-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.settings-icon { font-size: 1rem; }
+.settings-note { font-size: .82rem; color: var(--ink-faint); margin-top: 8px; line-height: 1.5; }

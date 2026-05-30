@@ -18,9 +18,9 @@
     </button>
 
     <ul class="nav__links" id="navLinks">
-      <li><a href="{% url 'index' %}" class="nav__link {% if request.resolver_match.url_name == 'index' %}nav__link--active{% endif %}">Home</a></li>
-      <li><a href="{% url 'setup' %}" class="nav__link {% if 'setup' in request.resolver_match.url_name %}nav__link--active{% endif %}">Setup</a></li>
       <li><a href="{% url 'dashboard' %}" class="nav__link {% if 'dashboard' in request.resolver_match.url_name %}nav__link--active{% endif %}">Dashboard</a></li>
+      <li><a href="{% url 'setup' %}" class="nav__link {% if request.resolver_match.url_name in 'setup,topic_review' %}nav__link--active{% endif %}">Topics</a></li>
+      <li><a href="{% url 'settings' %}" class="nav__link {% if request.resolver_match.url_name == 'settings' %}nav__link--active{% endif %}">Settings</a></li>
     </ul>
   </div>
 </nav>

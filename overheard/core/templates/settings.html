@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Settings — Overheard{% endblock %}
+
+{% block content %}
+<div class="container container--narrow">
+
+  <div class="page-header">
+    <h1>Notification settings</h1>
+    <p class="page-header__sub">Where to send the daily digest. Leave blank to skip that channel.</p>
+  </div>
+
+  <form method="post" action="{% url 'settings' %}">
+    {% csrf_token %}
+
+    <div class="card settings-card">
+      <h2 class="settings-section-title">
+        <span class="settings-icon">✉</span> Email digest
+      </h2>
+      <div class="field">
+        <label class="label" for="{{ form.digest_to_email.id_for_label }}">{{ form.digest_to_email.label }}</label>
+        {{ form.digest_to_email }}
+        <p class="help">{{ form.digest_to_email.help_text }}</p>
+        {% for err in form.digest_to_email.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+      </div>
+      <p class="settings-note">
+        SMTP credentials (host, user, password) are set as environment variables.
+        See <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code> in your Replit secrets.
+      </p>
+    </div>
+
+    <div class="card settings-card">
+      <h2 class="settings-section-title">
+        <span class="settings-icon">#</span> Slack
+      </h2>
+      <div class="field">
+        <label class="label" for="{{ form.slack_webhook_url.id_for_label }}">{{ form.slack_webhook_url.label }}</label>
+        {{ form.slack_webhook_url }}
+        <p class="help">{{ form.slack_webhook_url.help_text }}</p>
+        {% for err in form.slack_webhook_url.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn--primary">Save settings</button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

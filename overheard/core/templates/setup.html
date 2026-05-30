@@ -1,92 +1,50 @@
 {% extends "base.html" %}
 
-{% block title %}Setup — Overheard{% endblock %}
+{% block title %}Add a topic — Overheard{% endblock %}
 
 {% block content %}
 <div class="container container--narrow">
-  <div class="page-header">
-    <h1>{% if editing %}Edit topic{% else %}Add a topic{% endif %}</h1>
-    <p class="page-header__sub">
-      {% if editing %}
-        Update the rubric or keywords for this topic.
-      {% else %}
-        Paste your website URL and we'll use Claude to figure out what conversations to watch for.
-      {% endif %}
-    </p>
-  </div>
 
-  {% for msg in messages %}
-  <div class="message message--{{ msg.tags }}">{{ msg }}</div>
-  {% endfor %}
+  {% if not topics %}
+  <div class="onboarding-hero">
+    <h1>What problem does your product solve?</h1>
+    <p class="onboarding-sub">Paste your URL — Claude reads your page and figures out what Reddit conversations to watch for.</p>
+  </div>
+  {% else %}
+  <div class="page-header">
+    <h1>Add another topic</h1>
+  </div>
+  {% endif %}
 
   <div class="card">
-    {% if editing %}
-      <form method="post" action="{% url 'topic_edit' editing.pk %}">
-        {% csrf_token %}
-        {% for field in form %}
-        <div class="field">
-          <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }}
-          {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
-          {% for err in field.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
-        </div>
-        {% endfor %}
-        {% for err in form.non_field_errors %}<p class="field-error">{{ err }}</p>{% endfor %}
-        <div class="form-actions">
-          <button type="submit" class="btn btn--primary">Save changes</button>
-          <a href="{% url 'setup' %}" class="btn btn--ghost">Cancel</a>
-        </div>
-      </form>
-    {% else %}
-      <form method="post" action="{% url 'setup' %}">
-        {% csrf_token %}
-        <div class="field">
-          <label class="label" for="{{ form.url.id_for_label }}">{{ form.url.label }}</label>
-          {{ form.url }}
-          {% if form.url.help_text %}<p class="help">{{ form.url.help_text }}</p>{% endif %}
-          {% for err in form.url.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
-        </div>
-        {% for err in form.non_field_errors %}<p class="field-error">{{ err }}</p>{% endfor %}
-        <div class="form-actions">
-          <button type="submit" class="btn btn--primary" id="submit-btn">
-            <span id="btn-text">Generate rubric &amp; keywords &rarr;</span>
-            <span id="btn-loading" style="display:none;">&#9656; Analysing your page&hellip;</span>
-          </button>
-        </div>
-        <p class="help" style="margin-top:12px;" id="submit-hint">This takes 5–10 seconds — Claude reads your page and builds the rubric.</p>
-      </form>
-      <script>
-        document.querySelector('form').addEventListener('submit', function() {
-          var btn = document.getElementById('submit-btn');
-          btn.disabled = true;
-          btn.style.opacity = '0.7';
-          document.getElementById('btn-text').style.display = 'none';
-          document.getElementById('btn-loading').style.display = 'inline';
-          document.getElementById('submit-hint').textContent = 'Working… this usually takes 5–10 seconds.';
-        });
-      </script>
-    {% endif %}
+    <form method="post" action="{% url 'setup' %}" id="setup-form">
+      {% csrf_token %}
+      <div class="field">
+        {{ form.url }}
+        {% for err in form.url.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary btn--lg" id="submit-btn">
+          <span id="btn-text">Analyse my site &rarr;</span>
+          <span id="btn-loading" hidden>Analysing&hellip; (5–10 s)</span>
+        </button>
+      </div>
+    </form>
   </div>
 
   {% if topics %}
-  <h2 class="section-heading">Your topics</h2>
+  <h2 class="section-heading" style="margin-top:40px;">Tracked topics</h2>
   <ul class="topic-list">
     {% for topic in topics %}
-    <li class="topic-card {% if editing and editing.pk == topic.pk %}topic-card--active{% endif %}">
+    <li class="topic-card">
       <div class="topic-card__header">
         <a href="{{ topic.url }}" target="_blank" rel="noopener" class="topic-card__url">{{ topic.url }}</a>
         <span class="badge">{{ topic.items.count }} match{{ topic.items.count|pluralize:"es" }}</span>
       </div>
-      <details class="topic-card__details">
-        <summary>Rubric &amp; keywords</summary>
-        <p class="topic-card__rubric">{{ topic.rubric }}</p>
-        <div class="topic-card__keywords">
-          {% for kw in topic.keywords %}<span class="kw-tag">{{ kw }}</span>{% endfor %}
-        </div>
-      </details>
       <div class="topic-card__actions">
-        <a href="{% url 'topic_edit' topic.pk %}" class="btn btn--sm btn--ghost">Edit</a>
-        <form method="post" action="{% url 'topic_delete' topic.pk %}" style="display:inline" onsubmit="return confirm('Delete this topic?')">
+        <a href="{% url 'topic_review' topic.pk %}" class="btn btn--sm btn--ghost">Edit rubric</a>
+        <form method="post" action="{% url 'topic_delete' topic.pk %}" style="display:inline"
+              onsubmit="return confirm('Delete this topic and all its matches?')">
           {% csrf_token %}
           <button type="submit" class="btn btn--sm btn--danger">Delete</button>
         </form>
@@ -97,4 +55,13 @@
   {% endif %}
 
 </div>
+
+<script>
+  document.getElementById('setup-form').addEventListener('submit', function () {
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    document.getElementById('btn-text').hidden = true;
+    document.getElementById('btn-loading').hidden = false;
+  });
+</script>
 {% endblock %}

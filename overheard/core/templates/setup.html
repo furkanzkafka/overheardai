@@ -15,6 +15,10 @@
     </p>
   </div>
 
+  {% for msg in messages %}
+  <div class="message message--{{ msg.tags }}">{{ msg }}</div>
+  {% endfor %}
+
   <div class="card">
     {% if editing %}
       <form method="post" action="{% url 'topic_edit' editing.pk %}">
@@ -42,12 +46,6 @@
           {% if form.url.help_text %}<p class="help">{{ form.url.help_text }}</p>{% endif %}
           {% for err in form.url.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
         </div>
-        <div class="field">
-          <label class="label" for="{{ form.score_threshold.id_for_label }}">{{ form.score_threshold.label }}</label>
-          {{ form.score_threshold }}
-          {% if form.score_threshold.help_text %}<p class="help">{{ form.score_threshold.help_text }}</p>{% endif %}
-          {% for err in form.score_threshold.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
-        </div>
         {% for err in form.non_field_errors %}<p class="field-error">{{ err }}</p>{% endfor %}
         <div class="form-actions">
           <button type="submit" class="btn btn--primary">Generate rubric &amp; keywords &rarr;</button>
@@ -64,7 +62,7 @@
     <li class="topic-card {% if editing and editing.pk == topic.pk %}topic-card--active{% endif %}">
       <div class="topic-card__header">
         <a href="{{ topic.url }}" target="_blank" rel="noopener" class="topic-card__url">{{ topic.url }}</a>
-        <span class="badge">threshold {{ topic.score_threshold }}</span>
+        <span class="badge">{{ topic.items.count }} match{{ topic.items.count|pluralize }}</span>
       </div>
       <details class="topic-card__details">
         <summary>Rubric &amp; keywords</summary>
@@ -79,20 +77,42 @@
           {% csrf_token %}
           <button type="submit" class="btn btn--sm btn--danger">Delete</button>
         </form>
-        <span class="topic-card__meta">{{ topic.items.count }} match{{ topic.items.count|pluralize }}</span>
       </div>
     </li>
     {% endfor %}
   </ul>
   {% endif %}
 
-  <div class="setup-help card" style="margin-top:32px;">
-    <h3>Running the poller</h3>
-    <p>Once your topic is set up, run this command (or schedule it as a Render cron job):</p>
-    <pre class="code-block">python manage.py poll</pre>
-    <p>To send the digest:</p>
-    <pre class="code-block">python manage.py send_digest</pre>
-    <p class="help">You'll need <code>ANTHROPIC_API_KEY</code>, <code>REDDIT_CLIENT_ID</code>, and <code>REDDIT_CLIENT_SECRET</code> set as environment variables.</p>
+  <h2 class="section-heading">Schedule</h2>
+  <div class="card">
+    <p class="help" style="margin-bottom:16px;">Overheard runs automatically in the background — no cron job needed.</p>
+    <form method="post" action="{% url 'schedule_save' %}">
+      {% csrf_token %}
+      <div class="schedule-grid">
+        <div class="schedule-row">
+          <label class="schedule-toggle">
+            {{ schedule_form.poll_enabled }}
+            <span>{{ schedule_form.poll_enabled.label }}</span>
+          </label>
+          <div class="field field--inline">
+            {{ schedule_form.poll_interval_hours }}
+          </div>
+        </div>
+        <div class="schedule-row">
+          <label class="schedule-toggle">
+            {{ schedule_form.digest_enabled }}
+            <span>{{ schedule_form.digest_enabled.label }}</span>
+          </label>
+          <div class="field field--inline">
+            {{ schedule_form.digest_hour }}
+          </div>
+        </div>
+      </div>
+      <div class="form-actions" style="margin-top:16px;">
+        <button type="submit" class="btn btn--primary">Save schedule</button>
+      </div>
+    </form>
   </div>
+
 </div>
 {% endblock %}

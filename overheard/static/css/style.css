@@ -308,3 +308,12 @@ code { font-family: var(--mono); font-size: .85em; background: var(--accent-lt);
   .item-card__meta { grid-template-columns: 1fr; }
   .item-card__meta dt::after { content: ':'; }
 }
+
+/* ─── Schedule settings ───────────────────────────────────────────────────────── */
+.schedule-grid { display: flex; flex-direction: column; gap: 14px; }
+.schedule-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.schedule-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: .95rem; font-weight: 500; min-width: 220px; }
+.schedule-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+.field--inline { margin: 0; }
+.field--inline select { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: .9rem; background: var(--bg); color: var(--ink); cursor: pointer; }
+.field--inline select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-lt); }

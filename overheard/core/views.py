@@ -1,13 +1,13 @@
 import logging
 
 import requests as http_requests
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from .models import Topic, MatchedItem
-from .forms import TopicSetupForm, TopicEditForm
 from .ai_filter import generate_rubric_and_keywords
+from .forms import ScheduleConfigForm, TopicEditForm, TopicSetupForm
+from .models import MatchedItem, ScheduleConfig, Topic
 
 logger = logging.getLogger(__name__)
 
@@ -19,14 +19,13 @@ def index(request):
 def setup(request):
     topics = Topic.objects.order_by('-updated_at')
     form = TopicSetupForm()
+    schedule_form = ScheduleConfigForm(instance=ScheduleConfig.get())
 
-    if request.method == 'POST':
+    if request.method == 'POST' and 'url' in request.POST:
         form = TopicSetupForm(request.POST)
         if form.is_valid():
             url = form.cleaned_data['url']
-            threshold = form.cleaned_data['score_threshold']
 
-            # Fetch page text
             try:
                 resp = http_requests.get(url, timeout=15, headers={'User-Agent': 'Overheard/1.0'})
                 resp.raise_for_status()
@@ -34,26 +33,34 @@ def setup(request):
             except Exception as exc:
                 logger.warning("Failed to fetch %s: %s", url, exc)
                 messages.error(request, f"Couldn't fetch that URL: {exc}")
-                return render(request, 'setup.html', {'form': form, 'topics': topics})
+                return render(request, 'setup.html', {
+                    'form': form, 'topics': topics, 'schedule_form': schedule_form,
+                })
 
-            # Generate rubric + keywords via Claude
             try:
                 rubric, keywords = generate_rubric_and_keywords(url, page_text)
             except Exception as exc:
                 logger.error("AI error for %s: %s", url, exc)
                 messages.error(request, f"AI step failed — is ANTHROPIC_API_KEY set? ({exc})")
-                return render(request, 'setup.html', {'form': form, 'topics': topics})
+                return render(request, 'setup.html', {
+                    'form': form, 'topics': topics, 'schedule_form': schedule_form,
+                })
 
-            Topic.objects.create(url=url, rubric=rubric, keywords=keywords, score_threshold=threshold)
-            messages.success(request, "Topic created! Keywords and rubric are ready — run the poll command to start collecting.")
+            Topic.objects.create(url=url, rubric=rubric, keywords=keywords, score_threshold=60)
+            messages.success(request, "Topic created — Overheard is now watching Reddit for matches.")
             return redirect('setup')
 
-    return render(request, 'setup.html', {'form': form, 'topics': topics})
+    return render(request, 'setup.html', {
+        'form': form,
+        'topics': topics,
+        'schedule_form': schedule_form,
+    })
 
 
 def topic_edit(request, pk):
     topic = get_object_or_404(Topic, pk=pk)
     topics = Topic.objects.order_by('-updated_at')
+    schedule_form = ScheduleConfigForm(instance=ScheduleConfig.get())
     if request.method == 'POST':
         form = TopicEditForm(request.POST, instance=topic)
         if form.is_valid():
@@ -62,7 +69,10 @@ def topic_edit(request, pk):
             return redirect('setup')
     else:
         form = TopicEditForm(instance=topic)
-    return render(request, 'setup.html', {'form': form, 'topics': topics, 'editing': topic})
+    return render(request, 'setup.html', {
+        'form': form, 'topics': topics, 'editing': topic,
+        'schedule_form': schedule_form,
+    })
 
 
 def topic_delete(request, pk):
@@ -70,6 +80,19 @@ def topic_delete(request, pk):
     if request.method == 'POST':
         topic.delete()
         messages.success(request, "Topic deleted.")
+    return redirect('setup')
+
+
+@require_POST
+def schedule_save(request):
+    config = ScheduleConfig.get()
+    form = ScheduleConfigForm(request.POST, instance=config)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Schedule saved.")
+    else:
+        for err in form.errors.values():
+            messages.error(request, str(err))
     return redirect('setup')
 
 

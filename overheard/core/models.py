@@ -47,3 +47,38 @@ class MatchedItem(models.Model):
 
     class Meta:
         ordering = ['-fetched_at']
+
+
+class ScheduleConfig(models.Model):
+    """Singleton — always use ScheduleConfig.get() instead of creating new rows."""
+    poll_interval_hours = models.IntegerField(
+        default=6,
+        help_text="How often (in hours) to fetch and score new posts.",
+    )
+    poll_enabled = models.BooleanField(default=True)
+    digest_hour = models.IntegerField(
+        default=8,
+        help_text="Hour of day (UTC, 0–23) to send the daily digest.",
+    )
+    digest_enabled = models.BooleanField(default=True)
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+        # Live-reschedule without restart
+        try:
+            from . import scheduler as sched
+            sched.reschedule(
+                poll_hours=self.poll_interval_hours,
+                digest_hour=self.digest_hour,
+            )
+        except Exception:
+            pass
+
+    class Meta:
+        verbose_name = "Schedule config"

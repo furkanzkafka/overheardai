@@ -72,8 +72,8 @@
     <p class="empty-state__icon">&#128226;</p>
     <h2>Nothing here yet</h2>
     {% if status_filter == 'new' %}
-      <p>Run <code>python manage.py poll</code> to fetch and filter posts.</p>
-      <a href="{% url 'setup' %}" class="btn btn--primary" style="margin-top:16px;">Check your setup &rarr;</a>
+      <p>Overheard runs automatically on your schedule. First match will appear here soon.</p>
+      <a href="{% url 'setup' %}" class="btn btn--primary" style="margin-top:16px;">Check setup &amp; schedule &rarr;</a>
     {% else %}
       <p>No items with this status.</p>
     {% endif %}

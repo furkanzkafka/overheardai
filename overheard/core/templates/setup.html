@@ -83,36 +83,5 @@
   </ul>
   {% endif %}
 
-  <h2 class="section-heading">Schedule</h2>
-  <div class="card">
-    <p class="help" style="margin-bottom:16px;">Overheard runs automatically in the background — no cron job needed.</p>
-    <form method="post" action="{% url 'schedule_save' %}">
-      {% csrf_token %}
-      <div class="schedule-grid">
-        <div class="schedule-row">
-          <label class="schedule-toggle">
-            {{ schedule_form.poll_enabled }}
-            <span>{{ schedule_form.poll_enabled.label }}</span>
-          </label>
-          <div class="field field--inline">
-            {{ schedule_form.poll_interval_hours }}
-          </div>
-        </div>
-        <div class="schedule-row">
-          <label class="schedule-toggle">
-            {{ schedule_form.digest_enabled }}
-            <span>{{ schedule_form.digest_enabled.label }}</span>
-          </label>
-          <div class="field field--inline">
-            {{ schedule_form.digest_hour }}
-          </div>
-        </div>
-      </div>
-      <div class="form-actions" style="margin-top:16px;">
-        <button type="submit" class="btn btn--primary">Save schedule</button>
-      </div>
-    </form>
-  </div>
-
 </div>
 {% endblock %}

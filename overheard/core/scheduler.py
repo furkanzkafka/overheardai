@@ -1,10 +1,9 @@
 """
-Background scheduler — runs poll and send_digest inside the Django process.
-APScheduler BackgroundScheduler keeps jobs running in a daemon thread pool.
+Background scheduler — runs once a day, automatically.
+  - Poll: every 24 hours
+  - Digest: daily at 08:00 UTC
 
-Jobs re-read ScheduleConfig from the DB before each run so edits take effect
-without a server restart.  Call reschedule() after saving ScheduleConfig to
-also adjust the trigger timing immediately.
+No configuration needed. Starts with the server.
 """
 import logging
 
@@ -20,17 +19,13 @@ _scheduler: BackgroundScheduler | None = None
 def _run_poll():
     try:
         from django.db import IntegrityError
-        from core.models import MatchedItem, ScheduleConfig, Topic
+        from core.models import MatchedItem, Topic
         from core.ai_filter import score_item
         from core.fetchers import fetch_reddit, fetch_x
 
-        config = ScheduleConfig.get()
-        if not config.poll_enabled:
-            return
-
         topics = Topic.objects.all()
         if not topics.exists():
-            logger.info("Scheduler poll: no topics, skipping.")
+            logger.info("Scheduler poll: no topics configured, skipping.")
             return
 
         logger.info("Scheduler poll: %d topic(s).", topics.count())
@@ -66,7 +61,7 @@ def _run_poll():
                     kept += 1
                 except IntegrityError:
                     pass
-        logger.info("Scheduler poll done: %d kept.", kept)
+        logger.info("Scheduler poll done: %d new item(s) kept.", kept)
     except Exception as exc:
         logger.error("Scheduler poll failed: %s", exc, exc_info=True)
 
@@ -74,13 +69,6 @@ def _run_poll():
 def _run_digest():
     try:
         from core.digest import send_digest
-        from core.models import ScheduleConfig
-
-        config = ScheduleConfig.get()
-        if not config.digest_enabled:
-            return
-
-        logger.info("Scheduler: sending digest.")
         result = send_digest()
         logger.info(
             "Digest sent: %d items, email=%s, slack=%s",
@@ -95,50 +83,13 @@ def start_scheduler():
     if _scheduler is not None:
         return
 
-    try:
-        from core.models import ScheduleConfig
-        config = ScheduleConfig.get()
-        poll_hours = config.poll_interval_hours
-        digest_hour = config.digest_hour
-    except Exception:
-        poll_hours = 6
-        digest_hour = 8
-
     _scheduler = BackgroundScheduler(daemon=True)
 
-    _scheduler.add_job(
-        _run_poll,
-        trigger=IntervalTrigger(hours=poll_hours),
-        id="poll",
-        replace_existing=True,
-    )
-    _scheduler.add_job(
-        _run_digest,
-        trigger=CronTrigger(hour=digest_hour, minute=0),
-        id="digest",
-        replace_existing=True,
-    )
+    # Poll once every 24 hours
+    _scheduler.add_job(_run_poll, trigger=IntervalTrigger(hours=24), id="poll")
+
+    # Digest every day at 08:00 UTC
+    _scheduler.add_job(_run_digest, trigger=CronTrigger(hour=8, minute=0), id="digest")
 
     _scheduler.start()
-    logger.info(
-        "Scheduler started — poll every %dh, digest at %02d:00 UTC.",
-        poll_hours, digest_hour,
-    )
-
-
-def reschedule(poll_hours: int | None = None, digest_hour: int | None = None):
-    """Live-update trigger timing after ScheduleConfig is saved."""
-    global _scheduler
-    if _scheduler is None:
-        return
-    try:
-        if poll_hours is not None:
-            _scheduler.reschedule_job("poll", trigger=IntervalTrigger(hours=poll_hours))
-        if digest_hour is not None:
-            _scheduler.reschedule_job("digest", trigger=CronTrigger(hour=digest_hour, minute=0))
-        logger.info(
-            "Scheduler rescheduled — poll every %sh, digest at %sh UTC.",
-            poll_hours, digest_hour,
-        )
-    except Exception as exc:
-        logger.error("Reschedule failed: %s", exc)
+    logger.info("Scheduler started — daily poll + 08:00 UTC digest.")

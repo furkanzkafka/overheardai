@@ -6,8 +6,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .ai_filter import generate_rubric_and_keywords
-from .forms import ScheduleConfigForm, TopicEditForm, TopicSetupForm
-from .models import MatchedItem, ScheduleConfig, Topic
+from .forms import TopicEditForm, TopicSetupForm
+from .models import MatchedItem, Topic
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +19,8 @@ def index(request):
 def setup(request):
     topics = Topic.objects.order_by('-updated_at')
     form = TopicSetupForm()
-    schedule_form = ScheduleConfigForm(instance=ScheduleConfig.get())
 
-    if request.method == 'POST' and 'url' in request.POST:
+    if request.method == 'POST':
         form = TopicSetupForm(request.POST)
         if form.is_valid():
             url = form.cleaned_data['url']
@@ -33,34 +32,25 @@ def setup(request):
             except Exception as exc:
                 logger.warning("Failed to fetch %s: %s", url, exc)
                 messages.error(request, f"Couldn't fetch that URL: {exc}")
-                return render(request, 'setup.html', {
-                    'form': form, 'topics': topics, 'schedule_form': schedule_form,
-                })
+                return render(request, 'setup.html', {'form': form, 'topics': topics})
 
             try:
                 rubric, keywords = generate_rubric_and_keywords(url, page_text)
             except Exception as exc:
                 logger.error("AI error for %s: %s", url, exc)
                 messages.error(request, f"AI step failed — is ANTHROPIC_API_KEY set? ({exc})")
-                return render(request, 'setup.html', {
-                    'form': form, 'topics': topics, 'schedule_form': schedule_form,
-                })
+                return render(request, 'setup.html', {'form': form, 'topics': topics})
 
             Topic.objects.create(url=url, rubric=rubric, keywords=keywords, score_threshold=60)
             messages.success(request, "Topic created — Overheard is now watching Reddit for matches.")
             return redirect('setup')
 
-    return render(request, 'setup.html', {
-        'form': form,
-        'topics': topics,
-        'schedule_form': schedule_form,
-    })
+    return render(request, 'setup.html', {'form': form, 'topics': topics})
 
 
 def topic_edit(request, pk):
     topic = get_object_or_404(Topic, pk=pk)
     topics = Topic.objects.order_by('-updated_at')
-    schedule_form = ScheduleConfigForm(instance=ScheduleConfig.get())
     if request.method == 'POST':
         form = TopicEditForm(request.POST, instance=topic)
         if form.is_valid():
@@ -69,10 +59,7 @@ def topic_edit(request, pk):
             return redirect('setup')
     else:
         form = TopicEditForm(instance=topic)
-    return render(request, 'setup.html', {
-        'form': form, 'topics': topics, 'editing': topic,
-        'schedule_form': schedule_form,
-    })
+    return render(request, 'setup.html', {'form': form, 'topics': topics, 'editing': topic})
 
 
 def topic_delete(request, pk):
@@ -80,19 +67,6 @@ def topic_delete(request, pk):
     if request.method == 'POST':
         topic.delete()
         messages.success(request, "Topic deleted.")
-    return redirect('setup')
-
-
-@require_POST
-def schedule_save(request):
-    config = ScheduleConfig.get()
-    form = ScheduleConfigForm(request.POST, instance=config)
-    if form.is_valid():
-        form.save()
-        messages.success(request, "Schedule saved.")
-    else:
-        for err in form.errors.values():
-            messages.error(request, str(err))
     return redirect('setup')
 
 

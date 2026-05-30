@@ -1,5 +1,5 @@
 from django import forms
-from .models import Topic, ScheduleConfig
+from .models import Topic
 
 
 class TopicSetupForm(forms.Form):
@@ -53,35 +53,3 @@ class TopicEditForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
-
-
-HOUR_CHOICES = [(i, f"{i:02d}:00 UTC") for i in range(24)]
-INTERVAL_CHOICES = [(1, "Every hour"), (2, "Every 2 hours"), (3, "Every 3 hours"),
-                    (6, "Every 6 hours"), (12, "Every 12 hours"), (24, "Once a day")]
-
-
-class ScheduleConfigForm(forms.ModelForm):
-    poll_interval_hours = forms.TypedChoiceField(
-        choices=INTERVAL_CHOICES,
-        coerce=int,
-        label="Poll frequency",
-        widget=forms.Select(attrs={'class': 'input input--narrow'}),
-    )
-    digest_hour = forms.TypedChoiceField(
-        choices=HOUR_CHOICES,
-        coerce=int,
-        label="Send digest at",
-        widget=forms.Select(attrs={'class': 'input input--narrow'}),
-    )
-
-    class Meta:
-        model = ScheduleConfig
-        fields = ['poll_enabled', 'poll_interval_hours', 'digest_enabled', 'digest_hour']
-        widgets = {
-            'poll_enabled': forms.CheckboxInput(),
-            'digest_enabled': forms.CheckboxInput(),
-        }
-        labels = {
-            'poll_enabled': 'Enable automatic polling',
-            'digest_enabled': 'Enable daily digest',
-        }

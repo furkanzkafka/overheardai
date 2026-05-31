@@ -10,7 +10,7 @@ SECRET_KEY = (
     or 'dev-only-secret-please-set-DJANGO_SECRET_KEY'
 )
 
-DEBUG = os.environ.get('DEBUG', 'true').lower() != 'false'
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = [

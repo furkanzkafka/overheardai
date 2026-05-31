@@ -1,21 +1,31 @@
 import os
-import dj_database_url
 from pathlib import Path
+
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = (
-    os.environ.get('DJANGO_SECRET_KEY')
-    or os.environ.get('SESSION_SECRET')
-    or 'dev-only-secret-please-set-DJANGO_SECRET_KEY'
-)
+# DEBUG is off by default. Set DJANGO_DEBUG=1 for local development only.
+DEBUG = os.environ.get('DJANGO_DEBUG') == '1'
 
-DEBUG = True
+# Secret key must come from the environment in production.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'dev-only-insecure-key'
+    else:
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DEBUG is off.")
 
-ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = [
-    f"https://{h}" for h in os.environ.get('REPLIT_DOMAINS', '').split(',') if h
-]
+# Render sets RENDER_EXTERNAL_HOSTNAME automatically (e.g. overheardai.onrender.com).
+RENDER_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+ALLOWED_HOSTS = []
+CSRF_TRUSTED_ORIGINS = []
+if RENDER_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_HOSTNAME)
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_HOSTNAME}')
+if DEBUG:
+    ALLOWED_HOSTS += ['localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -59,13 +69,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# Production requires DATABASE_URL; SQLite is local-dev only.
 _database_url = os.environ.get('DATABASE_URL', '')
-DATABASES = {
-    'default': dj_database_url.parse(_database_url) if _database_url else {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if _database_url:
+    DATABASES = {'default': dj_database_url.parse(_database_url)}
+elif DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    raise ImproperlyConfigured("DATABASE_URL must be set when DEBUG is off.")
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -79,9 +95,15 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Render terminates TLS and forwards X-Forwarded-Proto. Without this, Django sees
+# every request as HTTP — which breaks CSRF origin checks (forms 403) and secure cookies.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 # ── Reddit (public JSON — no credentials needed) ──────────────────────────────
 # Reddit fetching uses the public /search.json endpoint with a User-Agent header.
-# No API key or OAuth credentials are required.
 
 # ── X / Twitter (optional) ────────────────────────────────────────────────────
 X_BEARER_TOKEN = os.environ.get('X_BEARER_TOKEN', '')

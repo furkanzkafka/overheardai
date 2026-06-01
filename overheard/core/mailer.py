@@ -1,27 +1,51 @@
-"""Generic email sender over SMTP (point SMTP_* at Resend's relay)."""
+"""Generic email sender via the Resend HTTP API (https://resend.com).
+
+Uses Resend's REST endpoint over HTTPS (port 443) instead of SMTP, so it works
+on hosts that block outbound SMTP ports — including Render's free tier.
+Only two settings are needed: RESEND_API_KEY and FROM_EMAIL.
+"""
 import logging
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+
+import requests
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+_RESEND_URL = "https://api.resend.com/emails"
+
 
 def send_email(to: str, subject: str, html: str, text: str = "") -> bool:
-    if not all([settings.SMTP_HOST, settings.SMTP_USER, settings.SMTP_PASS, settings.FROM_EMAIL]):
-        logger.warning("SMTP settings incomplete — cannot send.")
+    if not settings.RESEND_API_KEY:
+        logger.warning("RESEND_API_KEY not set — cannot send.")
         return False
-    msg = MIMEMultipart("alternative")
-    msg["Subject"], msg["From"], msg["To"] = subject, settings.FROM_EMAIL, to
-    msg.attach(MIMEText(text or html, "plain"))
-    msg.attach(MIMEText(html, "html"))
+    if not settings.FROM_EMAIL:
+        logger.warning("FROM_EMAIL not set — cannot send.")
+        return False
+
+    payload = {
+        "from": settings.FROM_EMAIL,
+        "to": [to],
+        "subject": subject,
+        "html": html,
+    }
+    if text:
+        payload["text"] = text
+
     try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as s:
-            s.ehlo(); s.starttls(); s.login(settings.SMTP_USER, settings.SMTP_PASS)
-            s.sendmail(settings.FROM_EMAIL, to, msg.as_string())
-        logger.info("Email sent to %s", to)
+        resp = requests.post(
+            _RESEND_URL,
+            headers={
+                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        logger.info("Email sent to %s (Resend id=%s)", to, resp.json().get("id", "?"))
         return True
     except Exception as exc:
-        logger.error("Email send failed: %s", exc)
+        # Surface Resend's error body — it's specific (unverified domain, bad key, rate limit).
+        body = getattr(getattr(exc, "response", None), "text", "")
+        logger.error("Email send failed: %s %s", exc, body)
         return False

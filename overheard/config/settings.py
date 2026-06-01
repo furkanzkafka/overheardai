@@ -6,7 +6,6 @@ from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# DEBUG is off by default. Set DJANGO_DEBUG=1 for local development only.
 DEBUG = os.environ.get('DJANGO_DEBUG') == '1'
 
 # Secret key must come from the environment in production.
@@ -17,7 +16,7 @@ if not SECRET_KEY:
     else:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DEBUG is off.")
 
-# Render sets RENDER_EXTERNAL_HOSTNAME automatically (e.g. overheardai.onrender.com).
+# Render sets RENDER_EXTERNAL_HOSTNAME automatically
 RENDER_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 ALLOWED_HOSTS = []
 CSRF_TRUSTED_ORIGINS = []
@@ -106,12 +105,9 @@ ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 # ── Serper ────────────────────────────────────────────────────────
 SERPER_API_KEY = os.environ.get('SERPER_API_KEY', '')
 
-# ── Digest: email ─────────────────────────────────────────────────────────────
-SMTP_HOST = os.environ.get('SMTP_HOST', '')
-SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
-SMTP_USER = os.environ.get('SMTP_USER', '')
-SMTP_PASS = os.environ.get('SMTP_PASS', '')
-FROM_EMAIL = os.environ.get('FROM_EMAIL', '')
+# ── Digest: email (Resend HTTP API) ───────────────────────────────────────────
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+FROM_EMAIL = os.environ.get('FROM_EMAIL', '')        # must be on a Resend-verified domain
 DIGEST_TO_EMAIL = os.environ.get('DIGEST_TO_EMAIL', '')
 
 # ── Digest: Slack ─────────────────────────────────────────────────────────────

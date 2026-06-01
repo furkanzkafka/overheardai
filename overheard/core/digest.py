@@ -4,14 +4,12 @@ Notification targets are read from NotificationSettings (DB) first,
 falling back to environment variables.
 """
 import logging
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 import requests
 from django.conf import settings
 from django.utils import timezone
 
+from .mailer import send_email
 from .models import MatchedItem, NotificationSettings
 
 logger = logging.getLogger(__name__)
@@ -67,28 +65,9 @@ def send_email_digest(items: list) -> bool:
     if not to_email:
         logger.info("No digest email configured — skipping email.")
         return False
-    if not all([settings.SMTP_HOST, settings.SMTP_USER, settings.SMTP_PASS, settings.FROM_EMAIL]):
-        logger.warning("SMTP credentials incomplete — skipping email digest.")
-        return False
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"Overheard: {len(items)} new match{'es' if len(items) != 1 else ''}"
-    msg["From"] = settings.FROM_EMAIL
-    msg["To"] = to_email
-    msg.attach(MIMEText(_render_text(items), "plain"))
-    msg.attach(MIMEText(_render_html(items), "html"))
-
-    try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(settings.SMTP_USER, settings.SMTP_PASS)
-            server.sendmail(settings.FROM_EMAIL, to_email, msg.as_string())
-        logger.info("Email digest sent to %s", to_email)
-        return True
-    except Exception as exc:
-        logger.error("Email digest failed: %s", exc)
-        return False
+    subject = f"Overheard: {len(items)} new match{'es' if len(items) != 1 else ''}"
+    return send_email(to_email, subject, _render_html(items), _render_text(items))
 
 
 def send_slack_digest(items: list) -> bool:

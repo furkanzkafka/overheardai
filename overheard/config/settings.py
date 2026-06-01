@@ -69,19 +69,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Production requires DATABASE_URL; SQLite is local-dev only.
-_database_url = os.environ.get('DATABASE_URL', '')
-if _database_url:
-    DATABASES = {'default': dj_database_url.parse(_database_url)}
-elif DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-else:
-    raise ImproperlyConfigured("DATABASE_URL must be set when DEBUG is off.")
+# One database everywhere — DATABASE_URL points at Postgres, locally and on Render.
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    raise ImproperlyConfigured("DATABASE_URL must be set.")
+DATABASES = {'default': dj_database_url.parse(DATABASE_URL)}
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -110,6 +102,9 @@ X_BEARER_TOKEN = os.environ.get('X_BEARER_TOKEN', '')
 
 # ── Claude / Anthropic ────────────────────────────────────────────────────────
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+
+# ── Serper ────────────────────────────────────────────────────────
+SERPER_API_KEY = os.environ.get('SERPER_API_KEY', '')
 
 # ── Digest: email ─────────────────────────────────────────────────────────────
 SMTP_HOST = os.environ.get('SMTP_HOST', '')

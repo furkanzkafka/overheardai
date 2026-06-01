@@ -6,6 +6,7 @@ class Topic(models.Model):
     rubric = models.TextField()
     keywords = models.JSONField(default=list)
     score_threshold = models.IntegerField(default=60)
+    email = models.EmailField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -20,6 +21,7 @@ class MatchedItem(models.Model):
     class Platform(models.TextChoices):
         REDDIT = 'reddit', 'Reddit'
         X = 'x', 'X (Twitter)'
+        WEB = 'web', 'Web'
 
     class Status(models.TextChoices):
         NEW = 'new', 'New'

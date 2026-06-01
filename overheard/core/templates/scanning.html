@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Scanning… — Overheard{% endblock %}
+{% block content %}
+<div class="onboarding-wrap">
+  <div class="onboarding-step" style="text-align:center;">
+    <div class="onboarding-step__label">Working</div>
+    <h1>Scanning for conversations…</h1>
+    <p class="onboarding-step__sub">Finding posts that match your topic. This only takes a moment.</p>
+  </div>
+  <div class="card card--centered" style="text-align:center;">
+    <div class="spinner" aria-hidden="true"></div>
+    <form method="post" action="{% url 'topic_scan' topic.pk %}" id="scan-form">
+      {% csrf_token %}
+      <noscript><button type="submit" class="btn btn--primary">Continue &rarr;</button></noscript>
+    </form>
+  </div>
+</div>
+<style>
+  .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);
+    border-radius:50%;animation:spin .8s linear infinite;margin:8px auto 20px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+<script>
+  window.addEventListener('load', function(){
+    setTimeout(function(){ document.getElementById('scan-form').submit(); }, 400);
+  });
+</script>
+{% endblock %}

@@ -1,59 +1,732 @@
-{% extends "base.html" %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overheard — listen first, reply with care</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&family=Caveat:wght@500;600&display=swap"
+          rel="stylesheet">
+    <style>
+        :root {
+            --paper: #efe6d2;
+            --paper-lite: #f5eede;
+            --paper-deep: #e7dcc2;
+            --ink: #1b2232;
+            --ink-soft: #4f5260;
+            --ink-faint: #8a8576;
+            --rust: #b6452b;
+            --rust-dk: #95351f;
+            --line: #cdc1a4;
+            --serif: "Newsreader", Georgia, serif;
+            --display: "Fraunces", Georgia, serif;
+            --hand: "Caveat", cursive;
+            --maxw: 1080px;
+        }
 
-{% block title %}Overheard — hear the signal, skip the noise{% endblock %}
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-{% block content %}
-<section class="hero">
-  <div class="hero__inner">
-    <span class="hero__tag">For small teams who'd rather help than hustle</span>
-    <h1 class="hero__headline">People are describing<br>your problem right now.</h1>
-    <p class="hero__sub">
-      Overheard quietly watches Reddit (and optionally X) for genuine conversations
-      where someone is stuck on the exact problem you solve — then delivers a clean
-      daily digest to your inbox. No auto-replies, no bots. Just the signal, so your
-      team can decide whether to help.
-    </p>
-    <a href="{% url 'setup' %}" class="btn btn--primary btn--lg">Get started &rarr;</a>
-  </div>
-</section>
+        html {
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
+            scroll-behavior: smooth;
+        }
 
-<section class="steps">
-  <div class="container">
-    <h2 class="steps__heading">How it works</h2>
-    <ol class="steps__list">
-      <li class="step">
-        <div class="step__num">1</div>
-        <div class="step__body">
-          <h3 class="step__title">Paste your site</h3>
-          <p class="step__desc">Drop in your homepage URL. Overheard reads it and asks Claude to build a relevance rubric — what the problem is, who has it, and what to look for.</p>
+        body {
+            font-family: var(--serif);
+            background: var(--paper);
+            color: var(--ink);
+            line-height: 1.65;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* faint paper grain */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: .05;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        a {
+            color: var(--rust);
+            text-decoration: none;
+        }
+
+        .wrap {
+            max-width: var(--maxw);
+            margin: 0 auto;
+            padding: 0 28px;
+        }
+
+        /* ─── Nav ─────────────────────────────── */
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: color-mix(in srgb, var(--paper) 86%, transparent);
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .nav__in {
+            max-width: var(--maxw);
+            margin: 0 auto;
+            padding: 16px 28px;
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .logo {
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: 1.45rem;
+            letter-spacing: -.02em;
+            color: var(--ink);
+        }
+
+        .logo b {
+            color: var(--rust);
+        }
+
+        .nav__links {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 26px;
+        }
+
+        .nav__links a {
+            color: var(--ink-soft);
+            font-size: .98rem;
+            position: relative;
+        }
+
+        .nav__links a.q::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: -3px;
+            width: 0;
+            height: 1.5px;
+            background: var(--ink);
+            transition: width .25s ease;
+        }
+
+        .nav__links a.q:hover::after {
+            width: 100%;
+        }
+
+        .btn {
+            font-family: var(--serif);
+            font-size: .96rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            cursor: pointer;
+            padding: 9px 18px;
+            border: 1.5px solid var(--rust);
+            border-radius: 4px;
+            background: var(--rust);
+            color: var(--paper-lite);
+            transition: .18s;
+        }
+
+        .btn:hover {
+            background: var(--rust-dk);
+            border-color: var(--rust-dk);
+            transform: translateY(-1px);
+        }
+
+        .btn--ghost {
+            background: transparent;
+            color: var(--ink);
+            border-color: var(--ink);
+        }
+
+        .btn--ghost:hover {
+            background: var(--ink);
+            color: var(--paper-lite);
+            transform: translateY(-1px);
+        }
+
+        .btn--lg {
+            font-size: 1.05rem;
+            padding: 13px 26px;
+        }
+
+        /* ─── Hero ─────────────────────────────── */
+        .hero {
+            padding: 72px 0 40px;
+        }
+
+        .hero__grid {
+            display: grid;
+            grid-template-columns:1.05fr .95fr;
+            gap: 56px;
+            align-items: center;
+        }
+
+        .kicker {
+            font-family: var(--hand);
+            font-size: 1.7rem;
+            color: var(--rust);
+            line-height: 1;
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: clamp(2.7rem, 5.6vw, 4.4rem);
+            line-height: 1.02;
+            letter-spacing: -.025em;
+            margin-bottom: 22px;
+        }
+
+        h1 em {
+            font-style: italic;
+            color: var(--rust);
+        }
+
+        .lede {
+            font-size: 1.18rem;
+            color: var(--ink-soft);
+            max-width: 30rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .start {
+            display: flex;
+            gap: 8px;
+            max-width: 30rem;
+        }
+
+        .start input {
+            flex: 1;
+            font-family: var(--serif);
+            font-size: 1.02rem;
+            color: var(--ink);
+            padding: 12px 15px;
+            border: 1.5px solid var(--ink);
+            border-radius: 4px;
+            background: var(--paper-lite);
+        }
+
+        .start input::placeholder {
+            color: var(--ink-faint);
+        }
+
+        .start input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(182, 69, 43, .18);
+            border-color: var(--rust);
+        }
+
+        .reassure {
+            margin-top: 14px;
+            font-size: .92rem;
+            color: var(--ink-faint);
+            font-style: italic;
+        }
+
+        .reassure::before {
+            content: "✶ ";
+            color: var(--rust);
+            font-style: normal;
+        }
+
+        /* dithered hero plate */
+        .plate {
+            border: 1.5px solid var(--ink);
+            border-radius: 3px;
+            overflow: hidden;
+            box-shadow: 6px 7px 0 rgba(27, 34, 50, .12);
+        }
+
+        .plate svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        /* ─── Divider ─────────────────────────── */
+        .stars {
+            text-align: center;
+            color: var(--rust);
+            font-size: 1.3rem;
+            letter-spacing: 1.1rem;
+            padding: 48px 0 8px;
+        }
+
+        /* ─── How it works ────────────────────── */
+        .how {
+            padding: 36px 0 24px;
+        }
+
+        .sec-head {
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: clamp(1.8rem, 3.4vw, 2.5rem);
+            letter-spacing: -.02em;
+            margin-bottom: 8px;
+        }
+
+        .sec-sub {
+            color: var(--ink-soft);
+            font-size: 1.08rem;
+            margin-bottom: 8px;
+        }
+
+        .rows {
+            margin-top: 34px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns:1fr 1fr;
+            gap: 48px;
+            align-items: center;
+            background: var(--paper-lite);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 34px;
+        }
+
+        .row:nth-child(even) .row__art {
+            order: 2;
+        }
+
+        .row__n {
+            font-family: var(--hand);
+            font-size: 1.5rem;
+            color: var(--rust);
+            margin-bottom: 4px;
+        }
+
+        .row h3 {
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: 1.65rem;
+            letter-spacing: -.015em;
+            margin-bottom: 10px;
+        }
+
+        .row p {
+            color: var(--ink-soft);
+            font-size: 1.06rem;
+        }
+
+        .card {
+            border: 1.5px solid var(--ink);
+            border-radius: 4px;
+            background: var(--paper);
+            overflow: hidden;
+            box-shadow: 4px 5px 0 rgba(27, 34, 50, .10);
+        }
+
+        .card svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        /* ─── Ethos strip ─────────────────────── */
+        .ethos {
+            background: var(--paper-deep);
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+            margin-top: 56px;
+            padding: 52px 0;
+        }
+
+        .ethos__in {
+            max-width: 660px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 0 28px;
+        }
+
+        .ethos .eye {
+            font-size: 1.8rem;
+        }
+
+        .ethos p {
+            font-family: var(--display);
+            font-weight: 400;
+            font-style: italic;
+            font-size: 1.5rem;
+            line-height: 1.45;
+            color: var(--ink);
+            margin-top: 12px;
+        }
+
+        /* ─── Final CTA ───────────────────────── */
+        .final {
+            text-align: center;
+            padding: 72px 0 84px;
+        }
+
+        .final h2 {
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: clamp(2rem, 4vw, 2.9rem);
+            letter-spacing: -.02em;
+            margin-bottom: 10px;
+        }
+
+        .final p {
+            color: var(--ink-soft);
+            margin-bottom: 26px;
+            font-size: 1.1rem;
+        }
+
+        .final .start {
+            margin: 0 auto;
+        }
+
+        /* ─── Footer ──────────────────────────── */
+        .foot {
+            border-top: 1px solid var(--line);
+            padding: 26px;
+            text-align: center;
+            color: var(--ink-faint);
+            font-size: .92rem;
+        }
+
+        .foot .sig {
+            font-family: var(--hand);
+            font-size: 1.35rem;
+            color: var(--ink-soft);
+        }
+
+        /* ─── Motion ──────────────────────────── */
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .r {
+            opacity: 0;
+            animation: rise .7s cubic-bezier(.2, .7, .2, 1) forwards;
+        }
+
+        .d1 {
+            animation-delay: .05s
+        }
+
+        .d2 {
+            animation-delay: .16s
+        }
+
+        .d3 {
+            animation-delay: .27s
+        }
+
+        .d4 {
+            animation-delay: .38s
+        }
+
+        .d5 {
+            animation-delay: .5s
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(22px);
+            transition: opacity .6s ease, transform .6s ease;
+        }
+
+        .reveal.in {
+            opacity: 1;
+            transform: none;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .r, .reveal {
+                animation: none !important;
+                opacity: 1 !important;
+                transform: none !important;
+            }
+        }
+
+        /* ─── Responsive ──────────────────────── */
+        @media (max-width: 820px) {
+            .nav__links a.q {
+                display: none;
+            }
+
+            .hero__grid {
+                grid-template-columns:1fr;
+                gap: 36px;
+            }
+
+            .hero {
+                padding: 48px 0 24px;
+            }
+
+            .row {
+                grid-template-columns:1fr;
+                gap: 24px;
+                padding: 26px;
+            }
+
+            .row:nth-child(even) .row__art {
+                order: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ░░ NAV ░░ -->
+<nav class="nav">
+    <div class="nav__in">
+        <span class="logo">Over<b>heard</b></span>
+        <div class="nav__links">
+            <a href="#how" class="q">How it works</a>
+            <a href="#ethos" class="q">The ethos</a>
+            <a href="#start" class="btn">Start listening</a>
         </div>
-      </li>
-      <li class="step">
-        <div class="step__num">2</div>
-        <div class="step__body">
-          <h3 class="step__title">It listens and filters</h3>
-          <p class="step__desc">A scheduled job searches Reddit (and X if you add credentials) with your keywords. Every candidate goes through an AI intent filter — only genuine help-seekers make the cut.</p>
-        </div>
-      </li>
-      <li class="step">
-        <div class="step__num">3</div>
-        <div class="step__body">
-          <h3 class="step__title">You get a clean digest</h3>
-          <p class="step__desc">Each morning (or whenever you run it), you get a short list: what they said, why it's relevant, and a suggested angle if you decide to reach out. Your team decides — Overheard never posts.</p>
-        </div>
-      </li>
-    </ol>
-    <div class="steps__cta">
-      <a href="{% url 'setup' %}" class="btn btn--primary">Set up your first topic &rarr;</a>
     </div>
-  </div>
+</nav>
+
+<!-- ░░ HERO ░░ -->
+<header class="hero">
+    <div class="wrap hero__grid">
+        <div class="hero__copy">
+            <p class="kicker r d1">for people who'd rather help than hustle</p>
+            <h1 class="r d2">People are describing<br><em>your problem</em> right now.</h1>
+            <p class="lede r d3">Overheard quietly listens across Reddit &amp; X for genuine conversations where
+                someone's stuck on the exact thing you solve — then hands you a clean morning digest. No bots. No
+                auto-replies. Just the signal.</p>
+            <form class="start r d4" id="start" method="post" action="{% url 'setup' %}">
+                {% csrf_token %}
+                <input type="url" name="url" placeholder="yoursite.com" aria-label="Your website URL" required>
+                <button class="btn">Listen &rarr;</button>
+            </form>
+            <p class="reassure r d4">Read-only. We find the conversations — you decide whether to reply.</p>
+        </div>
+        <div class="hero__art r d5">
+            <div class="plate">
+                <!-- dithered duotone plate -->
+                <svg viewBox="0 0 640 460" xmlns="http://www.w3.org/2000/svg" role="img"
+                     aria-label="Dithered duotone artwork">
+                    <defs>
+                        <pattern id="px" width="6" height="6" patternUnits="userSpaceOnUse">
+                            <rect width="3.3" height="3.3" x=".4" y=".4" fill="#1b2232"/>
+                        </pattern>
+                        <radialGradient id="ramp" cx="22%" cy="84%" r="95%">
+                            <stop offset="0" stop-color="#fff"/>
+                            <stop offset="52%" stop-color="#fff"/>
+                            <stop offset="100%" stop-color="#000"/>
+                        </radialGradient>
+                        <mask id="halo">
+                            <rect width="640" height="460" fill="url(#ramp)"/>
+                        </mask>
+                    </defs>
+                    <rect width="640" height="460" fill="#efe6d2"/>
+                    <!-- dense solid mass, lower-left -->
+                    <path d="M0,460 L0,150 C90,210 150,150 230,250 C300,338 250,420 360,460 Z" fill="#1b2232"/>
+                    <path d="M0,460 L0,300 C120,300 150,360 260,360 C340,360 360,430 440,460 Z" fill="#1b2232"/>
+                    <!-- dithered halo over the whole plate -->
+                    <g mask="url(#halo)">
+                        <rect width="640" height="460" fill="url(#px)"/>
+                    </g>
+                    <!-- a few stray pixels drifting up-right -->
+                    <g fill="#1b2232">
+                        <rect x="470" y="120" width="4" height="4"/>
+                        <rect x="500" y="150" width="4" height="4"/>
+                        <rect x="540" y="100" width="4" height="4"/>
+                        <rect x="560" y="180" width="4" height="4"/>
+                        <rect x="430" y="80" width="4" height="4"/>
+                        <rect x="600" y="140" width="4" height="4"/>
+                        <rect x="520" y="230" width="4" height="4"/>
+                        <rect x="585" y="250" width="4" height="4"/>
+                    </g>
+                </svg>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="stars">✶ ✶ ✶</div>
+
+<!-- ░░ HOW IT WORKS ░░ -->
+<section class="how" id="how">
+    <div class="wrap">
+        <div class="reveal">
+            <h2 class="sec-head">How it works</h2>
+            <p class="sec-sub">Three quiet steps between you and the right conversation.</p>
+        </div>
+        <div class="rows">
+
+            <article class="row reveal">
+                <div class="row__copy">
+                    <p class="row__n">01</p>
+                    <h3>Paste your site.</h3>
+                    <p>Drop in your homepage. Overheard reads it and asks Claude to draft a relevance rubric — what the
+                        problem is, who has it, and the signals of a genuine need. You review it before anything goes
+                        live.</p>
+                </div>
+                <div class="row__art card" aria-hidden="true">
+                    <svg viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="520" height="300" fill="#efe6d2"/>
+                        <rect x="40" y="46" width="440" height="40" rx="6" fill="none" stroke="#1b2232"
+                              stroke-width="2"/>
+                        <circle cx="64" cy="66" r="5" fill="#b6452b"/>
+                        <line x1="86" y1="66" x2="300" y2="66" stroke="#8a8576" stroke-width="2"
+                              stroke-dasharray="3 5"/>
+                        <text x="300" y="71" font-family="Newsreader,serif" font-size="15" fill="#1b2232">yoursite.com
+                        </text>
+                        <rect x="40" y="118" width="440" height="142" rx="8" fill="none" stroke="#1b2232"
+                              stroke-width="2"/>
+                        <line x1="64" y1="150" x2="300" y2="150" stroke="#1b2232" stroke-width="3"/>
+                        <line x1="64" y1="176" x2="456" y2="176" stroke="#cdc1a4" stroke-width="3"/>
+                        <line x1="64" y1="198" x2="456" y2="198" stroke="#cdc1a4" stroke-width="3"/>
+                        <line x1="64" y1="220" x2="380" y2="220" stroke="#cdc1a4" stroke-width="3"/>
+                    </svg>
+                </div>
+            </article>
+
+            <article class="row reveal">
+                <div class="row__copy">
+                    <p class="row__n">02</p>
+                    <h3>It listens, then filters.</h3>
+                    <p>A scheduled job casts a wide keyword net across Reddit &amp; X. Every candidate runs through an
+                        AI intent filter that scores it against your rubric — so only real help-seekers make the cut,
+                        not idle chatter.</p>
+                </div>
+                <div class="row__art card" aria-hidden="true">
+                    <svg viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="520" height="300" fill="#efe6d2"/>
+                        <!-- wide net of dots funnelling down -->
+                        <g fill="#8a8576">
+                            <circle cx="70" cy="50" r="5"/>
+                            <circle cx="130" cy="44" r="5"/>
+                            <circle cx="190" cy="54" r="5"/>
+                            <circle cx="250" cy="42" r="5"/>
+                            <circle cx="310" cy="52" r="5"/>
+                            <circle cx="370" cy="46" r="5"/>
+                            <circle cx="430" cy="54" r="5"/>
+                            <circle cx="100" cy="86" r="5"/>
+                            <circle cx="220" cy="88" r="5"/>
+                            <circle cx="340" cy="84" r="5"/>
+                            <circle cx="400" cy="90" r="5"/>
+                        </g>
+                        <path d="M120,120 L400,120 L300,196 L300,250 L220,250 L220,196 Z" fill="none" stroke="#1b2232"
+                              stroke-width="2.5" stroke-linejoin="round"/>
+                        <text x="260" y="168" text-anchor="middle" font-family="Caveat,cursive" font-size="26"
+                              fill="#b6452b">AI filter
+                        </text>
+                        <circle cx="260" cy="262" r="11" fill="#b6452b"/>
+                        <path d="M255 262 l4 4 l7 -8" stroke="#efe6d2" stroke-width="2.5" fill="none"
+                              stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </article>
+
+            <article class="row reveal">
+                <div class="row__copy">
+                    <p class="row__n">03</p>
+                    <h3>You get a morning digest.</h3>
+                    <p>Each morning, a short list lands in your inbox: what they said, why it's a fit, and a suggested
+                        angle if you choose to reach out. Mark replied, ignore, move on. Overheard never posts on your
+                        behalf.</p>
+                </div>
+                <div class="row__art card" aria-hidden="true">
+                    <svg viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="520" height="300" fill="#efe6d2"/>
+                        <!-- small sun -->
+                        <circle cx="430" cy="64" r="20" fill="none" stroke="#b6452b" stroke-width="2.5"/>
+                        <g stroke="#b6452b" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="430" y1="28" x2="430" y2="36"/>
+                            <line x1="430" y1="92" x2="430" y2="100"/>
+                            <line x1="394" y1="64" x2="402" y2="64"/>
+                            <line x1="458" y1="64" x2="466" y2="64"/>
+                            <line x1="405" y1="39" x2="411" y2="45"/>
+                            <line x1="449" y1="83" x2="455" y2="89"/>
+                        </g>
+                        <!-- envelope -->
+                        <rect x="60" y="60" width="300" height="180" rx="8" fill="var(--paper-lite)" stroke="#1b2232"
+                              stroke-width="2.5"/>
+                        <path d="M60 72 L210 158 L360 72" fill="none" stroke="#1b2232" stroke-width="2.5"/>
+                        <line x1="92" y1="196" x2="240" y2="196" stroke="#cdc1a4" stroke-width="3"/>
+                        <line x1="92" y1="214" x2="190" y2="214" stroke="#cdc1a4" stroke-width="3"/>
+                        <text x="92" y="186" font-family="Caveat,cursive" font-size="22" fill="#b6452b">3 new matches
+                        </text>
+                    </svg>
+                </div>
+            </article>
+
+        </div>
+    </div>
 </section>
 
-<section class="note">
-  <div class="container note__inner">
-    <span class="note__icon">&#128064;</span>
-    <p>Overheard doesn't post, DM, or auto-reply to anyone. It's a read-only listener. What you do with the information is entirely up to you.</p>
-  </div>
+<!-- ░░ ETHOS ░░ -->
+<section class="ethos" id="ethos">
+    <div class="ethos__in reveal">
+        <span class="eye">👀</span>
+        <p>Overheard never posts, DMs, or auto-replies to anyone. It's a read-only listener. What you do with what you
+            hear is entirely up to you.</p>
+    </div>
 </section>
-{% endblock %}
+
+<!-- ░░ FINAL CTA ░░ -->
+<section class="final">
+    <div class="wrap reveal">
+        <h2>Start listening.</h2>
+        <p>Paste your site, check the rubric, get tomorrow's digest.</p>
+        <form class="start" method="post" action="{% url 'setup' %}">
+            {% csrf_token %}
+            <input type="url" name="url" placeholder="yoursite.com" aria-label="Your website URL" required>
+            <button class="btn btn--lg">Listen &rarr;</button>
+        </form>
+    </div>
+</section>
+
+<!-- ░░ FOOTER ░░ -->
+<footer class="foot">
+    <p>Overheard &mdash; <span class="sig">listen first, reply with care.</span></p>
+</footer>
+
+<script>
+    // scroll reveals
+    const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.classList.add('in');
+                io.unobserve(e.target);
+            }
+        });
+    }, {threshold: .16});
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+    // funnel entry (wires to /setup later)
+    document.querySelectorAll('.start').forEach(f => {
+        f.addEventListener('submit', () => document.getElementById('start')?.scrollIntoView({behavior: 'smooth'}));
+    });
+</script>
+</body>
+</html>

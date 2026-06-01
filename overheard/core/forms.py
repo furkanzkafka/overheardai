@@ -70,3 +70,18 @@ class NotificationSettingsForm(forms.ModelForm):
             'digest_to_email': 'Send digest to',
             'slack_webhook_url': 'Slack webhook URL',
         }
+
+class TopicEmailForm(forms.ModelForm):
+    email = forms.EmailField(
+        label="Your email",
+        widget=forms.EmailInput(attrs={
+            'class': 'input input--xl',
+            'placeholder': 'you@yourcompany.com',
+            'autofocus': True,
+        }),
+        help_text="We'll send your morning digest here. Unsubscribe anytime.",
+    )
+
+    class Meta:
+        model = Topic
+        fields = ['email']

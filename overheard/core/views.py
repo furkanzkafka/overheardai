@@ -1,22 +1,21 @@
 import logging
 
+
 import requests as http_requests
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from .pipeline import poll_topic
 from .ai_filter import generate_rubric_and_keywords
-from .forms import NotificationSettingsForm, TopicReviewForm, TopicSetupForm
+from .forms import NotificationSettingsForm, TopicReviewForm, TopicSetupForm, TopicEmailForm
 from .models import MatchedItem, NotificationSettings, Topic
 
 logger = logging.getLogger(__name__)
 
 
 def index(request):
-    if Topic.objects.exists():
-        return redirect('dashboard')
-    return redirect('setup')
-
+    return render(request, 'index.html')
 
 # ── Step 1: enter URL ────────────────────────────────────────────────────────
 
@@ -82,6 +81,29 @@ def topic_delete(request, pk):
         topic.delete()
         messages.success(request, "Topic deleted.")
     return redirect('setup')
+
+def topic_email(request, pk):
+    topic = get_object_or_404(Topic, pk=pk)
+    if request.method == 'POST':
+        form = TopicEmailForm(request.POST, instance=topic)
+        if form.is_valid():
+            form.save()
+            return redirect('topic_scan', pk=topic.pk)
+    else:
+        form = TopicEmailForm(instance=topic)
+    return render(request, 'email.html', {'topic': topic, 'form': form})
+
+
+def topic_scan(request, pk):
+    topic = get_object_or_404(Topic, pk=pk)
+    if request.method == 'POST':
+        try:
+            poll_topic(topic, max_queries=3, score_limit=10)
+        except Exception as exc:
+            logger.error("Initial scan failed for topic %s: %s", topic.pk, exc)
+        messages.success(request, "You're all set — here's what we found. We'll email you each morning.")
+        return redirect('dashboard')
+    return render(request, 'scanning.html', {'topic': topic})
 
 
 # ── Dashboard ────────────────────────────────────────────────────────────────

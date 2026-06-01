@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}One last thing — Overheard{% endblock %}
+{% block content %}
+<div class="onboarding-wrap">
+  <div class="onboarding-step">
+    <div class="onboarding-step__label">Almost there</div>
+    <h1>Where should the digest go?</h1>
+    <p class="onboarding-step__sub">We'll scan now and show you what we found — then send a short digest here every morning.</p>
+  </div>
+  <div class="card card--centered">
+    <form method="post" action="{% url 'topic_email' topic.pk %}">
+      {% csrf_token %}
+      <div class="field">
+        {{ form.email }}
+        <p class="help">{{ form.email.help_text }}</p>
+        {% for err in form.email.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+      </div>
+      <div class="form-actions form-actions--spread">
+        <a href="{% url 'topic_review' topic.pk %}" class="btn btn--ghost">&larr; Back</a>
+        <button type="submit" class="btn btn--primary btn--lg">Scan &amp; finish &rarr;</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

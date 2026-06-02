@@ -40,5 +40,4 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"Digest sent: {result['items']} items. "
             f"Email: {'✓' if result['email'] else '✗ (check config)'}  "
-            f"Slack: {'✓' if result['slack'] else '✗ (check config)'}"
         ))

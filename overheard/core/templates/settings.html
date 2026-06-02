@@ -1,50 +1,71 @@
-{% extends "base.html" %}
+{% extends "app_base.html" %}
 
 {% block title %}Settings — Overheard{% endblock %}
 
 {% block content %}
-<div class="container container--narrow">
+<div class="wrap">
 
-  <div class="page-header">
-    <h1>Notification settings</h1>
-    <p class="page-header__sub">Where to send the daily digest. Leave blank to skip that channel.</p>
-  </div>
+  <header class="dash-head">
+    <h1 class="dash-title">Settings</h1>
+    <p class="dash-sub">Listening for <a href="{{ topic.url }}" target="_blank" rel="noopener">{{ topic.url }}</a> · digest to {{ topic.email }}</p>
+  </header>
 
   <form method="post" action="{% url 'settings' %}">
     {% csrf_token %}
-
-    <div class="card settings-card">
-      <h2 class="settings-section-title">
-        <span class="settings-icon">✉</span> Email digest
-      </h2>
-      <div class="field">
-        <label class="label" for="{{ form.digest_to_email.id_for_label }}">{{ form.digest_to_email.label }}</label>
-        {{ form.digest_to_email }}
-        <p class="help">{{ form.digest_to_email.help_text }}</p>
-        {% for err in form.digest_to_email.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
-      </div>
-      <p class="settings-note">
-        SMTP credentials (host, user, password) are set as environment variables.
-        See <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code> in your Replit secrets.
-      </p>
-    </div>
-
-    <div class="card settings-card">
-      <h2 class="settings-section-title">
-        <span class="settings-icon">#</span> Slack
-      </h2>
-      <div class="field">
-        <label class="label" for="{{ form.slack_webhook_url.id_for_label }}">{{ form.slack_webhook_url.label }}</label>
-        {{ form.slack_webhook_url }}
-        <p class="help">{{ form.slack_webhook_url.help_text }}</p>
-        {% for err in form.slack_webhook_url.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+    <div class="set-card">
+      <h2 class="set-h">What we listen for</h2>
+      <p class="set-note">Edit your searches, then re-scan to pull fresh matches with the new list.</p>
+      <div class="chips" id="chips"></div>
+      <input class="chip-add" id="chip-add" type="text" placeholder="+ add a search…" aria-label="Add a keyword">
+      {{ form.keywords }}
+      {% for err in form.keywords.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+      <div class="set-actions">
+        <button type="submit" name="action" value="save" class="btn">Save keywords</button>
+        <button type="submit" name="action" value="rescan" class="btn btn--outline">Re-scan now</button>
       </div>
     </div>
+  </form>
 
-    <div class="form-actions">
-      <button type="submit" class="btn btn--primary">Save settings</button>
+  <form method="post" action="{% url 'settings' %}" onsubmit="return confirm('Delete your site, keywords, and all matches? This cannot be undone.');">
+    {% csrf_token %}
+    <div class="set-card set-card--danger">
+      <h2 class="set-h">Delete</h2>
+      <p class="set-note">Remove your site, keywords, and every match. You'll be signed out and can start fresh.</p>
+      <button type="submit" name="action" value="delete" class="btn btn--ghost">Delete my data</button>
     </div>
   </form>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var ta = document.getElementById('kw-textarea');
+  var chips = document.getElementById('chips');
+  var add = document.getElementById('chip-add');
+  var form = ta.closest('form');
+
+  var items = ta.value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+  ta.style.display = 'none';
+
+  function sync(){ ta.value = items.join('\n'); }
+  function render(){
+    chips.innerHTML = '';
+    items.forEach(function(kw, i){
+      var el = document.createElement('span'); el.className = 'chip';
+      var label = document.createElement('span'); label.textContent = kw;
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.setAttribute('aria-label', 'remove'); btn.textContent = '\u00d7';
+      btn.addEventListener('click', function(){ items.splice(i, 1); render(); sync(); });
+      el.appendChild(label); el.appendChild(btn); chips.appendChild(el);
+    });
+  }
+  add.addEventListener('keydown', function(e){
+    if (e.key === 'Enter'){ e.preventDefault(); var v = add.value.trim(); if (v){ items.push(v); add.value = ''; render(); sync(); } }
+  });
+  form.addEventListener('submit', sync);
+  render(); sync();
+})();
+</script>
 {% endblock %}

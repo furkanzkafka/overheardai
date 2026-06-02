@@ -1,5 +1,5 @@
 from django import forms
-from .models import NotificationSettings, Topic
+from .models import Topic
 
 
 class TopicSetupForm(forms.Form):
@@ -59,19 +59,6 @@ class TopicEmailForm(forms.ModelForm):
     class Meta:
         model = Topic
         fields = ['email']
-
-class NotificationSettingsForm(forms.ModelForm):
-    class Meta:
-        model = NotificationSettings
-        fields = ['digest_to_email', 'slack_webhook_url']
-        widgets = {
-            'digest_to_email': forms.EmailInput(attrs={'class': 'input', 'placeholder': 'you@yourcompany.com'}),
-            'slack_webhook_url': forms.URLInput(attrs={'class': 'input', 'placeholder': 'https://hooks.slack.com/services/…'}),
-        }
-        labels = {
-            'digest_to_email': 'Send digest to',
-            'slack_webhook_url': 'Slack webhook URL',
-        }
 
 class TopicEmailForm(forms.ModelForm):
     email = forms.EmailField(

@@ -9,7 +9,7 @@ from django.db import connection
 from functools import wraps
 
 from .digest import send_code, send_welcome
-from .models import EmailVerification, MatchedItem, NotificationSettings, Topic  # EmailVerification is the new bit
+from .models import EmailVerification, MatchedItem, Topic  # EmailVerification is the new bit
 
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
@@ -17,8 +17,8 @@ from django.views.decorators.http import require_POST
 
 from .pipeline import poll_topic
 from .ai_filter import generate_rubric_and_keywords
-from .forms import NotificationSettingsForm, TopicReviewForm, TopicSetupForm, TopicEmailForm
-from .models import MatchedItem, NotificationSettings, Topic
+from .forms import TopicReviewForm, TopicSetupForm, TopicEmailForm
+from .models import MatchedItem, Topic
 
 logger = logging.getLogger(__name__)
 
@@ -229,17 +229,32 @@ def item_action(request, pk):
 # ── Settings ─────────────────────────────────────────────────────────────────
 
 def settings_page(request):
-    config = NotificationSettings.get()
-    form = NotificationSettingsForm(instance=config)
+    topic = _session_topic(request)
+    if topic is None:
+        return redirect('index')
 
     if request.method == 'POST':
-        form = NotificationSettingsForm(request.POST, instance=config)
+        action = request.POST.get('action')
+
+        if action == 'delete':
+            topic.delete()
+            request.session.flush()
+            messages.success(request, "Your data's been deleted. Start fresh whenever you like.")
+            return redirect('index')
+
+        form = TopicReviewForm(request.POST, instance=topic)   # reuses the keyword editor
         if form.is_valid():
             form.save()
-            messages.success(request, "Settings saved.")
+            if action == 'rescan':
+                threading.Thread(target=_bg_scan, args=(topic.pk,), daemon=True).start()
+                messages.success(request, "Re-scanning with your latest keywords — refresh your matches in a moment.")
+            else:
+                messages.success(request, "Keywords updated.")
             return redirect('settings')
+    else:
+        form = TopicReviewForm(instance=topic)
 
-    return render(request, 'settings.html', {'form': form})
+    return render(request, 'settings.html', {'topic': topic, 'form': form})
 
 def logout(request):
     request.session.flush()

@@ -59,29 +59,6 @@ class MatchedItem(models.Model):
         ordering = ['-fetched_at']
 
 
-class NotificationSettings(models.Model):
-    """Singleton — always access via NotificationSettings.get()"""
-    digest_to_email = models.EmailField(
-        blank=True, default='',
-        help_text="Email address to receive the daily digest.",
-    )
-    slack_webhook_url = models.CharField(
-        max_length=500, blank=True, default='',
-        help_text="Slack incoming webhook URL.",
-    )
-
-    @classmethod
-    def get(cls):
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
-
-    def save(self, *args, **kwargs):
-        self.pk = 1
-        super().save(*args, **kwargs)
-
-    class Meta:
-        verbose_name = "Notification settings"
-
 class EmailVerification(models.Model):
     CODE_TTL_MINUTES = 10
     MAX_ATTEMPTS = 5

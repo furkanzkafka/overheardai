@@ -10,16 +10,10 @@ from django.conf import settings
 from django.utils import timezone
 
 from .mailer import send_email
-from .models import MatchedItem, NotificationSettings
+from .models import MatchedItem
 
 logger = logging.getLogger(__name__)
 
-
-def _notif_settings():
-    try:
-        return NotificationSettings.get()
-    except Exception:
-        return None
 
 def _render_html(items, heading=None):
     rows = ""
@@ -59,13 +53,10 @@ def _render_text(items):
 
 
 def send_email_digest(items: list) -> bool:
-    ns = _notif_settings()
-    to_email = (ns.digest_to_email if ns else '') or settings.DIGEST_TO_EMAIL
-
+    to_email = settings.DIGEST_TO_EMAIL
     if not to_email:
         logger.info("No digest email configured — skipping email.")
         return False
-
     subject = f"Overheard: {len(items)} new match{'es' if len(items) != 1 else ''}"
     return send_email(to_email, subject, _render_html(items), _render_text(items))
 
@@ -117,18 +108,14 @@ def send_digest() -> dict:
     items = list(MatchedItem.objects.filter(status=MatchedItem.Status.NEW).order_by('-score', '-fetched_at'))
     if not items:
         logger.info("No new items to digest.")
-        return {"items": 0, "email": False, "slack": False}
-
+        return {"items": 0, "email": False}
     email_ok = send_email_digest(items)
-    slack_ok = send_slack_digest(items)
-
     now = timezone.now()
     for item in items:
         item.status = MatchedItem.Status.SENT
         item.sent_at = now
     MatchedItem.objects.bulk_update(items, ["status", "sent_at"])
-
-    return {"items": len(items), "email": email_ok, "slack": slack_ok}
+    return {"items": len(items), "email": email_ok}
 
 def send_code(email, code):
     html = (

@@ -108,6 +108,14 @@ details.why summary::before{content:"\2736  ";}
 .appfoot .sig{font-family:var(--hand);font-size:1.2rem;color:var(--ink-soft);}
 .wrap{max-width:760px;margin:0 auto;padding:0 24px;}
 
+/* settings cards */
+.set-card{background:var(--paper-lite);border:1.5px solid var(--line);border-radius:8px;padding:22px 24px;margin-bottom:18px;box-shadow:3px 4px 0 rgba(27,34,50,.06);}
+.set-card--danger{border-color:rgba(182,69,43,.35);}
+.set-h{font-family:var(--display);font-weight:600;font-size:1.15rem;margin-bottom:6px;}
+.set-note{font-size:.9rem;color:var(--ink-soft);margin-bottom:4px;line-height:1.5;}
+.set-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+
+
 /* dashboard header + tabs */
 .dash-head{margin-bottom:24px;}
 .dash-title{font-family:var(--display);font-weight:600;font-size:1.9rem;letter-spacing:-.02em;}

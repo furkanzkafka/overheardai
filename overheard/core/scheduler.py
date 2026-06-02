@@ -71,7 +71,7 @@ def _run_digest():
         from core.digest import send_digest
         result = send_digest()
         logger.info(
-            "Digest sent: %d items, email=%s, slack=%s",
+            "Digest sent: %d items, email=%s",
             result["items"], result["email"], result["slack"],
         )
     except Exception as exc:

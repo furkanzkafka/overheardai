@@ -15,6 +15,16 @@ def _client():
     import anthropic
     return anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
+def _parse_json(raw: str) -> dict:
+    """Pull the JSON object out even if the model wraps it in ```fences``` or adds stray text."""
+    raw = raw.strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        start, end = raw.find("{"), raw.rfind("}")
+        if start != -1 and end > start:
+            return json.loads(raw[start:end + 1])
+        raise
 
 def generate_rubric_and_keywords(url: str, page_text: str) -> tuple[str, list[str]]:
     """
@@ -44,33 +54,34 @@ def generate_rubric_and_keywords(url: str, page_text: str) -> tuple[str, list[st
         }],
     )
     raw = response.content[0].text.strip()
-    data = json.loads(raw)
+    data = _parse_json(raw)
     return data["rubric"], data["keywords"]
 
 
-def score_item(text_snippet: str, rubric: str) -> dict:
-    """
-    Score a single candidate post/comment against the rubric.
-    Returns a dict with: score, why_relevant, what_theyre_asking, suggested_angle.
-    """
+def score_item(text_snippet: str, rubric: str, subreddit: str = "") -> dict:
+    """Score one Reddit post (title + snippet) against the rubric; North America only."""
     client = _client()
+    sub_line = f"SUBREDDIT: r/{subreddit}\n" if subreddit else ""
     response = client.messages.create(
         model="claude-haiku-4-5",
         max_tokens=500,
         messages=[{
             "role": "user",
             "content": (
-                "Score the following social media post against the relevance rubric below.\n\n"
+                "Score the following Reddit post against the relevance rubric below.\n\n"
                 f"RUBRIC:\n{rubric}\n\n"
+                "HARD LOCATION RULE: this product serves North America (US & Canada) only. "
+                "If the post is clearly about somewhere else (India, UK, Australia, etc.), score it 0 "
+                "no matter how well the topic fits. Use the subreddit and the text as location cues.\n\n"
+                f"{sub_line}"
                 f"POST:\n{text_snippet}\n\n"
-                "Return JSON ONLY (no markdown) with these keys:\n"
+                "Return JSON ONLY (no markdown, no preamble) with these keys:\n"
                 '{"score": 0-100, "why_relevant": "...", "what_theyre_asking": "...", "suggested_angle": "..."}\n'
-                "score is 0 if completely irrelevant, 100 if a perfect match.\n"
+                "score is 0 if irrelevant or outside North America, 100 if a perfect match.\n"
                 "why_relevant: one sentence on why this person's situation matches the rubric.\n"
-                "what_theyre_asking: one sentence summarising what help they want.\n"
+                "what_theyre_asking: one sentence on what help they want.\n"
                 "suggested_angle: one sentence on how the team could genuinely help."
             ),
         }],
     )
-    raw = response.content[0].text.strip()
-    return json.loads(raw)
+    return _parse_json(response.content[0].text.strip())

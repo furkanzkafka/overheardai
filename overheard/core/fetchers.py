@@ -12,6 +12,7 @@ import logging
 import time
 from datetime import datetime, timezone, timedelta
 from typing import Generator
+from urllib.parse import urlparse
 
 import requests as http_requests
 from django.conf import settings

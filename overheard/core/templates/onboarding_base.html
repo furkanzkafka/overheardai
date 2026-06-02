@@ -1,0 +1,61 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Overheard{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+<div class="shell">
+  <section class="pane">
+    <div class="pane__inner">
+
+      <div class="topbar reveal d1">
+        <a href="{% url 'index' %}" class="logo">Over<b>heard</b></a>
+        <div class="progress">
+          <div class="segs">
+            <span class="seg {% if step >= 1 %}on{% endif %}"></span>
+            <span class="seg {% if step >= 2 %}on{% endif %}"></span>
+            <span class="seg {% if step >= 3 %}on{% endif %}"></span>
+          </div>
+          <span class="steplabel">Step {{ step }} of 3</span>
+        </div>
+      </div>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="ob-msg ob-msg--{{ message.tags }} reveal d1">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <form class="ob-flow" method="post" action="{% block action %}{% endblock %}">
+        {% csrf_token %}
+        <div class="stage"><div class="stage__in">
+          {% block screen %}{% endblock %}
+        </div></div>
+        <div class="navbar reveal d1">
+          {% block back %}<span class="spacer"></span>{% endblock %}
+          {% block cta %}<button type="submit" class="btn">Continue &rarr;</button>{% endblock %}
+        </div>
+      </form>
+
+    </div>
+  </section>
+
+  <aside class="art">
+    <div class="art-stage">
+      <div class="art-card reveal d2">
+        {% block art %}{% endblock %}
+        <span class="art-cap">{% block art_cap %}{% endblock %}</span>
+      </div>
+    </div>
+  </aside>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,45 +1,80 @@
-{% extends "base.html" %}
+{% extends "onboarding_base.html" %}
 
-{% block title %}Review your topic — Overheard{% endblock %}
+{% block title %}Review your keywords — Overheard{% endblock %}
+{% block action %}{% url 'topic_review' topic.pk %}{% endblock %}
 
-{% block content %}
-<div class="onboarding-wrap">
+{% block screen %}
+  <p class="kicker reveal d1">what we heard</p>
+  <h1 class="ob-title reveal d2">Here's what we'll <em>listen</em> for.</h1>
+  <p class="sub reveal d3">These are the searches we run for you each day. Add, remove, or reword anything — you know your people best.</p>
 
-  <div class="onboarding-step">
-    <div class="onboarding-step__label">Step 2 of 2</div>
-    <h1>Review &amp; confirm</h1>
-    <p class="onboarding-step__sub">
-      Claude analysed <strong>{{ topic.url }}</strong> and wrote this rubric and keyword list.
-      Edit anything that looks off — this is what drives the filter.
-    </p>
+  <div class="reveal d4">
+    <div class="chips" id="chips"></div>
+    <input class="chip-add" id="chip-add" type="text" placeholder="+ add a search…" aria-label="Add a keyword">
+    {{ form.keywords }}
+    {% for err in form.keywords.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
   </div>
 
-  <form method="post" action="{% url 'topic_review' topic.pk %}">
-    {% csrf_token %}
+  <details class="why reveal d5">
+    <summary>Why these?</summary>
+    <div class="why__body">{{ topic.rubric }}</div>
+  </details>
+{% endblock %}
 
-    <div class="card" style="margin-bottom:16px;">
-      <div class="field">
-        <label class="label" for="{{ form.rubric.id_for_label }}">Relevance rubric</label>
-        {{ form.rubric }}
-        <p class="help">Describes who you want to reach. Edit freely.</p>
-        {% for err in form.rubric.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
-      </div>
-    </div>
+{% block back %}<a class="btn btn--ghost" href="{% url 'setup' %}">&larr; Back</a>{% endblock %}
+{% block cta %}<button type="submit" class="btn">Looks good &rarr;</button>{% endblock %}
 
-    <div class="card" style="margin-bottom:28px;">
-      <div class="field">
-        <label class="label" for="{{ form.keywords.id_for_label }}">Search keywords</label>
-        {{ form.keywords }}
-        <p class="help">One search query per line. Add, remove, or tweak as needed.</p>
-        {% for err in form.keywords.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
-      </div>
-    </div>
+{% block art %}
+  <div class="plate">
+    <svg viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
+      <rect width="520" height="300" fill="#efe6d2"/>
+      <g fill="#8a8576">
+        <circle cx="70" cy="50" r="5"/><circle cx="130" cy="44" r="5"/><circle cx="190" cy="54" r="5"/>
+        <circle cx="250" cy="42" r="5"/><circle cx="310" cy="52" r="5"/><circle cx="370" cy="46" r="5"/>
+        <circle cx="430" cy="54" r="5"/><circle cx="100" cy="86" r="5"/><circle cx="220" cy="88" r="5"/>
+        <circle cx="340" cy="84" r="5"/><circle cx="400" cy="90" r="5"/>
+      </g>
+      <path d="M120,120 L400,120 L300,196 L300,250 L220,250 L220,196 Z" fill="none" stroke="#1b2232" stroke-width="2.5" stroke-linejoin="round"/>
+      <text x="260" y="168" text-anchor="middle" font-family="Caveat,cursive" font-size="26" fill="#b6452b">intent filter</text>
+      <circle cx="260" cy="262" r="11" fill="#b6452b"/>
+      <path d="M255 262 l4 4 l7 -8" stroke="#efe6d2" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+{% endblock %}
+{% block art_cap %}only the real ones get through.{% endblock %}
 
-    <div class="form-actions form-actions--spread">
-      <a href="{% url 'setup' %}" class="btn btn--ghost">&larr; Back</a>
-      <button type="submit" class="btn btn--primary btn--lg">Start watching &rarr;</button>
-    </div>
-  </form>
+{% block scripts %}
+<script>
+(function(){
+  var ta = document.getElementById('kw-textarea');
+  var chips = document.getElementById('chips');
+  var add = document.getElementById('chip-add');
+  var form = document.querySelector('.ob-flow');
 
-</div>
+  var items = ta.value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+  ta.style.display = 'none';  // chips are the UI; the textarea is the data holder
+
+  function sync(){ ta.value = items.join('\n'); }
+  function render(){
+    chips.innerHTML = '';
+    items.forEach(function(kw, i){
+      var el = document.createElement('span'); el.className = 'chip';
+      var label = document.createElement('span'); label.textContent = kw;
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.setAttribute('aria-label', 'remove'); btn.textContent = '\u00d7';
+      btn.addEventListener('click', function(){ items.splice(i, 1); render(); sync(); });
+      el.appendChild(label); el.appendChild(btn); chips.appendChild(el);
+    });
+  }
+  add.addEventListener('keydown', function(e){
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      var v = add.value.trim();
+      if (v){ items.push(v); add.value = ''; render(); sync(); }
+    }
+  });
+  form.addEventListener('submit', sync);
+  render(); sync();
+})();
+</script>
 {% endblock %}

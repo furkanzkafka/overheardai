@@ -1,5 +1,7 @@
+import secrets
+from datetime import timedelta
 from django.db import models
-
+from django.utils import timezone
 
 class Topic(models.Model):
     url = models.URLField(max_length=500)
@@ -7,6 +9,7 @@ class Topic(models.Model):
     keywords = models.JSONField(default=list)
     score_threshold = models.IntegerField(default=60)
     email = models.EmailField(blank=True, default='')
+    email_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -72,3 +75,38 @@ class NotificationSettings(models.Model):
 
     class Meta:
         verbose_name = "Notification settings"
+
+class EmailVerification(models.Model):
+    CODE_TTL_MINUTES = 10
+    MAX_ATTEMPTS = 5
+    RESEND_COOLDOWN_SECONDS = 30
+
+    topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name='verifications')
+    email = models.EmailField()
+    code = models.CharField(max_length=6)
+    attempts = models.IntegerField(default=0)
+    consumed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ['-created_at']
+
+    @classmethod
+    def issue(cls, topic, email):
+        cls.objects.filter(topic=topic, consumed=False).update(consumed=True)  # retire old codes
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        return cls.objects.create(
+            topic=topic, email=email, code=code,
+            expires_at=timezone.now() + timedelta(minutes=cls.CODE_TTL_MINUTES),
+        )
+
+    @classmethod
+    def latest_for(cls, topic):
+        return cls.objects.filter(topic=topic, consumed=False).order_by('-created_at').first()
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def seconds_since_sent(self):
+        return (timezone.now() - self.created_at).total_seconds()

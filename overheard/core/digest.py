@@ -21,8 +21,7 @@ def _notif_settings():
     except Exception:
         return None
 
-
-def _render_html(items):
+def _render_html(items, heading=None):
     rows = ""
     for item in items:
         platform_label = item.get_platform_display()
@@ -39,8 +38,9 @@ def _render_html(items):
           <p style="margin:0 0 10px;font-size:13px;color:#111827;"><strong>Angle:</strong> {item.suggested_angle}</p>
           <a href="{item.source_url}" style="font-size:13px;color:#4f46e5;">View original →</a>
         </div>"""
+    head = heading or f'Overheard digest — {len(items)} new match{"es" if len(items) != 1 else ""}'
     return f"""<html><body style="max-width:640px;margin:40px auto;font-family:system-ui,sans-serif;">
-    <h2 style="color:#1a1a2e;">Overheard digest — {len(items)} new match{"es" if len(items) != 1 else ""}</h2>
+    <h2 style="color:#1a1a2e;">{head}</h2>
     {rows}
     <p style="color:#9ca3af;font-size:12px;margin-top:40px;">These posts were found and scored automatically. No replies have been sent.</p>
     </body></html>"""
@@ -129,3 +129,34 @@ def send_digest() -> dict:
     MatchedItem.objects.bulk_update(items, ["status", "sent_at"])
 
     return {"items": len(items), "email": email_ok, "slack": slack_ok}
+
+def send_code(email, code):
+    html = (
+        '<div style="font-family:Georgia,serif;max-width:420px;margin:40px auto;color:#1b2232;">'
+        '<p style="font-size:15px;">Your Overheard verification code:</p>'
+        f'<p style="font-size:34px;letter-spacing:8px;font-weight:700;color:#b6452b;margin:10px 0;">{code}</p>'
+        '<p style="font-size:13px;color:#6b7280;">It expires in 10 minutes. If you didn\'t request this, ignore it.</p>'
+        '</div>'
+    )
+    text = f"Your Overheard verification code is {code}. It expires in 10 minutes."
+    return send_email(email, "Your Overheard code", html, text)
+
+
+def send_welcome(topic):
+    if not topic.email:
+        return False
+    items = list(
+        MatchedItem.objects.filter(topic=topic, status=MatchedItem.Status.NEW)
+        .order_by('-score', '-fetched_at')
+    )
+    n = len(items)
+    subject = "Overheard is listening — your first batch"
+    if items:
+        heading = f"You're all set — {n} conversation{'s' if n != 1 else ''} to start"
+        html, text = _render_html(items, heading=heading), _render_text(items)
+    else:
+        html = ('<div style="font-family:Georgia,serif;max-width:560px;margin:40px auto;color:#1b2232;">'
+                '<h2>You\'re all set.</h2><p style="color:#4f5260;">We\'re listening now. The moment someone '
+                'starts looking for what you do, they\'ll land in your morning digest.</p></div>')
+        text = "You're all set. We're listening — your first matches will arrive in the morning digest."
+    return send_email(topic.email, subject, html, text)

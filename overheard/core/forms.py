@@ -7,8 +7,8 @@ class TopicSetupForm(forms.Form):
         label="Your website URL",
         widget=forms.URLInput(attrs={
             'placeholder': 'yoursite.com',
-            'class': 'input input--xl',
-            'autofocus': True,
+            'class': 'field-input',
+            'autocomplete': 'off',
         }),
     )
 
@@ -21,33 +21,21 @@ class TopicSetupForm(forms.Form):
 
 class TopicReviewForm(forms.ModelForm):
     keywords = forms.CharField(
-        label="Keywords",
-        widget=forms.Textarea(attrs={'class': 'input', 'rows': 6}),
-        help_text="One search query per line. Claude generated these — add, remove, or tweak as you see fit.",
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'field-input', 'id': 'kw-textarea', 'rows': 6}),
     )
 
     class Meta:
         model = Topic
-        fields = ['rubric', 'keywords']
-        widgets = {
-            'rubric': forms.Textarea(attrs={'class': 'input', 'rows': 7}),
-        }
-        labels = {
-            'rubric': 'Relevance rubric',
-        }
-        help_texts = {
-            'rubric': "Describes who you want to reach and what qualifies as a genuine match. Edit freely.",
-        }
+        fields = []  # rubric stays as generated; this form only edits keywords
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk:
-            kws = self.instance.keywords
-            if isinstance(kws, list):
-                self.fields['keywords'].initial = '\n'.join(kws)
+        if self.instance and self.instance.pk and isinstance(self.instance.keywords, list):
+            self.fields['keywords'].initial = '\n'.join(self.instance.keywords)
 
     def clean_keywords(self):
-        raw = self.cleaned_data['keywords']
+        raw = self.cleaned_data.get('keywords', '')
         return [line.strip() for line in raw.splitlines() if line.strip()]
 
     def save(self, commit=True):
@@ -57,6 +45,20 @@ class TopicReviewForm(forms.ModelForm):
             instance.save()
         return instance
 
+class TopicEmailForm(forms.ModelForm):
+    email = forms.EmailField(
+        label="Your email",
+        widget=forms.EmailInput(attrs={
+            'class': 'field-input',
+            'placeholder': 'you@yourcompany.com',
+            'autocomplete': 'off',
+        }),
+        help_text="We'll send your morning digest here.",
+    )
+
+    class Meta:
+        model = Topic
+        fields = ['email']
 
 class NotificationSettingsForm(forms.ModelForm):
     class Meta:

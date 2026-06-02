@@ -1,0 +1,107 @@
+{% extends "onboarding_base.html" %}
+
+{% block title %}Enter your code — Overheard{% endblock %}
+{% block action %}{% url 'topic_verify' topic.pk %}{% endblock %}
+
+{% block screen %}
+  <p class="kicker reveal d1">check your inbox</p>
+  <h1 class="ob-title reveal d2">Enter your <em>code</em>.</h1>
+  <p class="sub reveal d3">We sent a 6-digit code to <strong>{{ email }}</strong>.</p>
+
+  <div class="reveal d4">
+    <input class="field-input" type="text" inputmode="numeric" name="code" id="code-field"
+           maxlength="6" autocomplete="one-time-code" placeholder="Enter your 6-digit code">
+    <div class="otp" id="otp" hidden>
+      <input inputmode="numeric" maxlength="1" aria-label="Digit 1">
+      <input inputmode="numeric" maxlength="1" aria-label="Digit 2">
+      <input inputmode="numeric" maxlength="1" aria-label="Digit 3">
+      <input inputmode="numeric" maxlength="1" aria-label="Digit 4">
+      <input inputmode="numeric" maxlength="1" aria-label="Digit 5">
+      <input inputmode="numeric" maxlength="1" aria-label="Digit 6">
+    </div>
+    <p class="resend">Didn't get it? <button type="button" class="linkbtn" id="resend">Resend code</button></p>
+    <p class="scanning-note"><span class="dot"></span> Meanwhile, we're already scanning for your first matches…</p>
+  </div>
+{% endblock %}
+
+{% block back %}<a class="btn btn--ghost" href="{% url 'topic_email' topic.pk %}">&larr; Back</a>{% endblock %}
+{% block cta %}<button type="submit" class="btn" id="cta">Verify &amp; finish &rarr;</button>{% endblock %}
+
+{% block art %}
+  <div class="plate">
+    <svg viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
+      <rect width="520" height="300" fill="#efe6d2"/>
+      <circle cx="430" cy="64" r="20" fill="none" stroke="#b6452b" stroke-width="2.5"/>
+      <g stroke="#b6452b" stroke-width="2.5" stroke-linecap="round">
+        <line x1="430" y1="28" x2="430" y2="36"/><line x1="430" y1="92" x2="430" y2="100"/>
+        <line x1="394" y1="64" x2="402" y2="64"/><line x1="458" y1="64" x2="466" y2="64"/>
+        <line x1="405" y1="39" x2="411" y2="45"/><line x1="449" y1="83" x2="455" y2="89"/>
+      </g>
+      <rect x="60" y="60" width="300" height="180" rx="8" fill="#f5eede" stroke="#1b2232" stroke-width="2.5"/>
+      <path d="M60 72 L210 158 L360 72" fill="none" stroke="#1b2232" stroke-width="2.5"/>
+      <line x1="92" y1="196" x2="240" y2="196" stroke="#cdc1a4" stroke-width="3"/>
+      <line x1="92" y1="214" x2="190" y2="214" stroke="#cdc1a4" stroke-width="3"/>
+      <text x="92" y="186" font-family="Caveat,cursive" font-size="22" fill="#b6452b">3 new matches</text>
+    </svg>
+  </div>
+{% endblock %}
+{% block art_cap %}seconds away.{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var codeField = document.getElementById('code-field');
+  var otp = document.getElementById('otp');
+  var boxes = [].slice.call(otp.querySelectorAll('input'));
+  var cta = document.getElementById('cta');
+  var resend = document.getElementById('resend');
+  var form = document.querySelector('.ob-flow');
+
+  codeField.style.display = 'none';   // single field is the no-JS fallback
+  otp.hidden = false;
+
+  function val(){ return boxes.map(function(b){ return b.value; }).join(''); }
+  function sync(){ codeField.value = val(); if (cta) cta.disabled = val().length !== 6; }
+
+  boxes.forEach(function(box, i){
+    box.addEventListener('input', function(){
+      box.value = box.value.replace(/\D/g, '').slice(0, 1);
+      if (box.value && i < boxes.length - 1) boxes[i + 1].focus();
+      sync();
+    });
+    box.addEventListener('keydown', function(e){
+      if (e.key === 'Backspace' && !box.value && i > 0) boxes[i - 1].focus();
+    });
+  });
+  otp.addEventListener('paste', function(e){
+    var d = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+    if (!d) return;
+    e.preventDefault();
+    d.split('').forEach(function(ch, idx){ if (boxes[idx]) boxes[idx].value = ch; });
+    (boxes[d.length] || boxes[5]).focus();
+    sync();
+  });
+  form.addEventListener('submit', sync);
+
+  resend.addEventListener('click', function(){
+    if (resend.disabled) return;
+    var h = document.createElement('input');
+    h.type = 'hidden'; h.name = 'action'; h.value = 'resend';
+    form.appendChild(h); form.submit();
+  });
+
+  // cosmetic countdown; the server enforces the real 30s cooldown
+  (function(){
+    var t = 30; resend.disabled = true; resend.textContent = 'Resend in ' + t + 's';
+    var iv = setInterval(function(){
+      t--;
+      if (t <= 0){ clearInterval(iv); resend.disabled = false; resend.textContent = 'Resend code'; }
+      else resend.textContent = 'Resend in ' + t + 's';
+    }, 1000);
+  })();
+
+  sync();
+  boxes[0].focus();
+})();
+</script>
+{% endblock %}

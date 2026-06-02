@@ -1,42 +1,50 @@
-{% extends "base.html" %}
+{% extends "onboarding_base.html" %}
 
-{% block title %}Add your website — Overheard{% endblock %}
+{% block title %}What's your website? — Overheard{% endblock %}
+{% block action %}{% url 'setup' %}{% endblock %}
 
-{% block content %}
-<div class="onboarding-wrap">
-
-  <div class="onboarding-step">
-    <div class="onboarding-step__label">Step 1 of 2</div>
-    <h1>What's your website?</h1>
-    <p class="onboarding-step__sub">
-      Paste your URL — Claude reads it and works out exactly what Reddit conversations to watch for.
-    </p>
+{% block screen %}
+  <p class="kicker reveal d1">let's begin</p>
+  <h1 class="ob-title reveal d2">What's your <em>website</em>?</h1>
+  <p class="sub reveal d3">Paste your URL — we'll read it and work out exactly which conversations to listen for.</p>
+  <div class="reveal d4">
+    {{ form.url }}
+    {% for err in form.url.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
   </div>
+{% endblock %}
 
-  <div class="card card--centered">
-    <form method="post" action="{% url 'setup' %}" id="setup-form">
-      {% csrf_token %}
-      <div class="field">
-        {{ form.url }}
-        {% for err in form.url.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
-      </div>
-      <div class="form-actions form-actions--center">
-        <button type="submit" class="btn btn--primary btn--lg" id="submit-btn">
-          <span id="btn-text">Analyse my site &rarr;</span>
-          <span id="btn-loading" hidden>Analysing&hellip; (5–10 s)</span>
-        </button>
-      </div>
-    </form>
+{% block cta %}
+  <button type="submit" class="btn" id="cta">
+    <span id="cta-text">Read my site &rarr;</span>
+    <span id="cta-load" hidden>Reading your site… (5–10s)</span>
+  </button>
+{% endblock %}
+
+{% block art %}
+  <div class="plate">
+    <svg viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
+      <rect width="520" height="300" fill="#efe6d2"/>
+      <rect x="40" y="46" width="440" height="40" rx="6" fill="none" stroke="#1b2232" stroke-width="2"/>
+      <circle cx="64" cy="66" r="5" fill="#b6452b"/>
+      <line x1="86" y1="66" x2="300" y2="66" stroke="#8a8576" stroke-width="2" stroke-dasharray="3 5"/>
+      <text x="300" y="71" font-family="Newsreader,serif" font-size="15" fill="#1b2232">yoursite.com</text>
+      <rect x="40" y="118" width="440" height="142" rx="8" fill="none" stroke="#1b2232" stroke-width="2"/>
+      <line x1="64" y1="150" x2="300" y2="150" stroke="#1b2232" stroke-width="3"/>
+      <line x1="64" y1="176" x2="456" y2="176" stroke="#cdc1a4" stroke-width="3"/>
+      <line x1="64" y1="198" x2="456" y2="198" stroke="#cdc1a4" stroke-width="3"/>
+      <line x1="64" y1="220" x2="380" y2="220" stroke="#cdc1a4" stroke-width="3"/>
+    </svg>
   </div>
+{% endblock %}
+{% block art_cap %}we read every word.{% endblock %}
 
-</div>
-
+{% block scripts %}
 <script>
-  document.getElementById('setup-form').addEventListener('submit', function () {
-    var btn = document.getElementById('submit-btn');
-    btn.disabled = true;
-    document.getElementById('btn-text').hidden = true;
-    document.getElementById('btn-loading').hidden = false;
+  document.querySelector('.ob-flow').addEventListener('submit', function(){
+    var b = document.getElementById('cta');
+    b.disabled = true;
+    document.getElementById('cta-text').hidden = true;
+    document.getElementById('cta-load').hidden = false;
   });
 </script>
 {% endblock %}

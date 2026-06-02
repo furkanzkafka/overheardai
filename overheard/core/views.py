@@ -1,7 +1,13 @@
 import logging
 
-
 import requests as http_requests
+
+import threading
+from django.conf import settings
+from django.db import connection
+from .digest import send_code, send_welcome
+from .models import EmailVerification, MatchedItem, NotificationSettings, Topic  # EmailVerification is the new bit
+
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -55,24 +61,30 @@ def setup(request):
             topic = Topic.objects.create(url=url, rubric=rubric, keywords=keywords, score_threshold=60)
             return redirect('topic_review', pk=topic.pk)
 
-    return render(request, 'setup.html', {'form': form, 'topics': topics})
+    return render(request, 'setup.html', {'form': form, 'topics': topics, 'step': 1})
 
+def _bg_scan(topic_id):
+    """Run the first scan in the background while the user types their code."""
+    try:
+        topic = Topic.objects.get(pk=topic_id)
+        poll_topic(topic, max_queries=3, score_limit=10)
+    except Exception:
+        logger.exception("Background scan failed for topic %s", topic_id)
+    finally:
+        connection.close()  # threads get their own DB connection; close it
 
 # ── Step 2: review & edit rubric/keywords ────────────────────────────────────
 
 def topic_review(request, pk):
     topic = get_object_or_404(Topic, pk=pk)
-
     if request.method == 'POST':
         form = TopicReviewForm(request.POST, instance=topic)
         if form.is_valid():
             form.save()
-            messages.success(request, "Topic saved. Overheard will check Reddit daily and surface relevant posts here.")
-            return redirect('dashboard')
+            return redirect('topic_email', pk=topic.pk)   # advance to the email step
     else:
         form = TopicReviewForm(instance=topic)
-
-    return render(request, 'review.html', {'topic': topic, 'form': form})
+    return render(request, 'review.html', {'topic': topic, 'form': form, 'step': 2})
 
 
 def topic_delete(request, pk):
@@ -88,10 +100,15 @@ def topic_email(request, pk):
         form = TopicEmailForm(request.POST, instance=topic)
         if form.is_valid():
             form.save()
-            return redirect('topic_scan', pk=topic.pk)
+            ev = EmailVerification.issue(topic, topic.email)
+            if settings.DEBUG:
+                logger.warning("DEV: verification code for %s is %s", topic.email, ev.code)
+            send_code(topic.email, ev.code)
+            threading.Thread(target=_bg_scan, args=(topic.pk,), daemon=True).start()  # scan during the wait
+            return redirect('topic_verify', pk=topic.pk)
     else:
         form = TopicEmailForm(instance=topic)
-    return render(request, 'email.html', {'topic': topic, 'form': form})
+    return render(request, 'email.html', {'topic': topic, 'form': form, 'step': 3})
 
 
 def topic_scan(request, pk):
@@ -105,32 +122,69 @@ def topic_scan(request, pk):
         return redirect('dashboard')
     return render(request, 'scanning.html', {'topic': topic})
 
+def topic_verify(request, pk):
+    topic = get_object_or_404(Topic, pk=pk)
+
+    if request.method == 'POST':
+        if request.POST.get('action') == 'resend':
+            latest = EmailVerification.latest_for(topic)
+            if latest and latest.seconds_since_sent() < EmailVerification.RESEND_COOLDOWN_SECONDS:
+                messages.info(request, "Hang on a few seconds before asking for another code.")
+            elif topic.email:
+                ev = EmailVerification.issue(topic, topic.email)
+                if settings.DEBUG:
+                    logger.warning("DEV: verification code for %s is %s", topic.email, ev.code)
+                send_code(topic.email, ev.code)
+                messages.success(request, "New code sent.")
+            return redirect('topic_verify', pk=topic.pk)
+
+        ev = EmailVerification.latest_for(topic)
+        code = (request.POST.get('code') or '').strip()
+        if ev is None or ev.is_expired():
+            messages.error(request, "That code has expired — request a new one.")
+        elif ev.attempts >= EmailVerification.MAX_ATTEMPTS:
+            messages.error(request, "Too many tries. Request a fresh code.")
+        elif code == ev.code:
+            ev.consumed = True
+            ev.save(update_fields=['consumed'])
+            topic.email_verified = True
+            topic.save(update_fields=['email_verified'])
+            request.session['topic_id'] = topic.pk  # this is what scopes the dashboard in Step 4
+            try:
+                send_welcome(topic)
+            except Exception:
+                logger.exception("Welcome email failed for topic %s", topic.pk)
+            return redirect('dashboard')
+        else:
+            ev.attempts += 1
+            ev.save(update_fields=['attempts'])
+            messages.error(request, "That code didn't match. Try again.")
+
+    return render(request, 'verify.html', {'topic': topic, 'step': 3, 'email': topic.email})
 
 # ── Dashboard ────────────────────────────────────────────────────────────────
 
 def dashboard(request):
+    topic = Topic.objects.filter(pk=request.session.get('topic_id')).first()
+    if topic is None:
+        return redirect('index')   # not signed in (no/expired session) → back to the front door
+
     status_filter = request.GET.get('status', 'new')
-    valid_statuses = [s.value for s in MatchedItem.Status]
-    if status_filter not in valid_statuses:
+    if status_filter not in [s.value for s in MatchedItem.Status]:
         status_filter = 'new'
 
-    items = MatchedItem.objects.filter(status=status_filter).order_by('-fetched_at')[:100]
+    base = MatchedItem.objects.filter(topic=topic)
+    items = base.filter(status=status_filter).order_by('-fetched_at')[:100]
+    counts = {s.value: base.filter(status=s.value).count() for s in MatchedItem.Status}
     status_choices = [{'value': s.value, 'label': s.label} for s in MatchedItem.Status]
-    counts = {s.value: MatchedItem.objects.filter(status=s.value).count() for s in MatchedItem.Status}
-    topics = Topic.objects.order_by('-updated_at')
 
     return render(request, 'dashboard.html', {
-        'items': items,
-        'status_filter': status_filter,
-        'counts': counts,
-        'status_choices': status_choices,
-        'topics': topics,
+        'topic': topic, 'items': items, 'status_filter': status_filter,
+        'counts': counts, 'status_choices': status_choices,
     })
-
-
 @require_POST
 def item_action(request, pk):
-    item = get_object_or_404(MatchedItem, pk=pk)
+    item = get_object_or_404(MatchedItem, pk=pk, topic_id=request.session.get('topic_id'))
     action = request.POST.get('action')
     if action in (MatchedItem.Status.REPLIED, MatchedItem.Status.IGNORED):
         item.status = action
@@ -152,3 +206,7 @@ def settings_page(request):
             return redirect('settings')
 
     return render(request, 'settings.html', {'form': form})
+
+def logout(request):
+    request.session.flush()
+    return redirect('index')

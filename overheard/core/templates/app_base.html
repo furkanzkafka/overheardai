@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Overheard{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+<nav class="appnav">
+  <div class="appnav__in">
+    <a href="{% url 'dashboard' %}" class="logo">Over<b>heard</b></a>
+    <div class="appnav__links">
+      <a href="{% url 'dashboard' %}" class="appnav__link {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}">Matches</a>
+      <a href="{% url 'settings' %}" class="appnav__link {% if request.resolver_match.url_name == 'settings' %}is-active{% endif %}">Settings</a>
+      <a href="{% url 'logout' %}" class="appnav__link">Log out</a>
+    </div>
+  </div>
+</nav>
+
+{% if messages %}
+  <div class="appmsgs">
+    {% for message in messages %}
+      <div class="ob-msg ob-msg--{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<main class="appmain">{% block content %}{% endblock %}</main>
+
+<footer class="appfoot"><p>Overheard — <span class="sig">listen first, reply with care.</span></p></footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

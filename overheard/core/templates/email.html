@@ -1,25 +1,52 @@
-{% extends "base.html" %}
-{% block title %}One last thing — Overheard{% endblock %}
-{% block content %}
-<div class="onboarding-wrap">
-  <div class="onboarding-step">
-    <div class="onboarding-step__label">Almost there</div>
-    <h1>Where should the digest go?</h1>
-    <p class="onboarding-step__sub">We'll scan now and show you what we found — then send a short digest here every morning.</p>
+{% extends "onboarding_base.html" %}
+
+{% block title %}Where should the digest go? — Overheard{% endblock %}
+{% block action %}{% url 'topic_email' topic.pk %}{% endblock %}
+
+{% block screen %}
+  <p class="kicker reveal d1">almost there</p>
+  <h1 class="ob-title reveal d2">Where should the <em>digest</em> land?</h1>
+  <p class="sub reveal d3">Every morning we send a short list of who's looking, what they said, and an angle if you feel like replying. Pop in your email to finish.</p>
+  <div class="reveal d4">
+    {{ form.email }}
+    {% for err in form.email.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
   </div>
-  <div class="card card--centered">
-    <form method="post" action="{% url 'topic_email' topic.pk %}">
-      {% csrf_token %}
-      <div class="field">
-        {{ form.email }}
-        <p class="help">{{ form.email.help_text }}</p>
-        {% for err in form.email.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
-      </div>
-      <div class="form-actions form-actions--spread">
-        <a href="{% url 'topic_review' topic.pk %}" class="btn btn--ghost">&larr; Back</a>
-        <button type="submit" class="btn btn--primary btn--lg">Scan &amp; finish &rarr;</button>
-      </div>
-    </form>
+{% endblock %}
+
+{% block back %}<a class="btn btn--ghost" href="{% url 'topic_review' topic.pk %}">&larr; Back</a>{% endblock %}
+{% block cta %}
+  <button type="submit" class="btn" id="cta">
+    <span id="cta-text">Send me a code &rarr;</span>
+    <span id="cta-load" hidden>Sending…</span>
+  </button>
+{% endblock %}
+
+{% block art %}
+  <div class="plate">
+    <svg viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
+      <rect width="520" height="300" fill="#efe6d2"/>
+      <circle cx="430" cy="64" r="20" fill="none" stroke="#b6452b" stroke-width="2.5"/>
+      <g stroke="#b6452b" stroke-width="2.5" stroke-linecap="round">
+        <line x1="430" y1="28" x2="430" y2="36"/><line x1="430" y1="92" x2="430" y2="100"/>
+        <line x1="394" y1="64" x2="402" y2="64"/><line x1="458" y1="64" x2="466" y2="64"/>
+        <line x1="405" y1="39" x2="411" y2="45"/><line x1="449" y1="83" x2="455" y2="89"/>
+      </g>
+      <rect x="60" y="60" width="300" height="180" rx="8" fill="#f5eede" stroke="#1b2232" stroke-width="2.5"/>
+      <path d="M60 72 L210 158 L360 72" fill="none" stroke="#1b2232" stroke-width="2.5"/>
+      <line x1="92" y1="196" x2="240" y2="196" stroke="#cdc1a4" stroke-width="3"/>
+      <line x1="92" y1="214" x2="190" y2="214" stroke="#cdc1a4" stroke-width="3"/>
+      <text x="92" y="186" font-family="Caveat,cursive" font-size="22" fill="#b6452b">3 new matches</text>
+    </svg>
   </div>
-</div>
+{% endblock %}
+{% block art_cap %}tomorrow, in your inbox.{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelector('.ob-flow').addEventListener('submit', function(){
+    var b = document.getElementById('cta'); b.disabled = true;
+    document.getElementById('cta-text').hidden = true;
+    document.getElementById('cta-load').hidden = false;
+  });
+</script>
 {% endblock %}

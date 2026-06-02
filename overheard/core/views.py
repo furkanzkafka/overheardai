@@ -1,10 +1,13 @@
 import logging
 
 import requests as http_requests
-
 import threading
+
 from django.conf import settings
 from django.db import connection
+
+from functools import wraps
+
 from .digest import send_code, send_welcome
 from .models import EmailVerification, MatchedItem, NotificationSettings, Topic  # EmailVerification is the new bit
 
@@ -94,22 +97,34 @@ def topic_delete(request, pk):
         messages.success(request, "Topic deleted.")
     return redirect('setup')
 
+@_anonymous_only
 def topic_email(request, pk):
     topic = get_object_or_404(Topic, pk=pk)
     if request.method == 'POST':
         form = TopicEmailForm(request.POST, instance=topic)
         if form.is_valid():
-            form.save()
-            ev = EmailVerification.issue(topic, topic.email)
+            email = form.cleaned_data['email']
+            existing = (Topic.objects
+                        .filter(email__iexact=email, email_verified=True)
+                        .exclude(pk=topic.pk).first())
+            if existing:
+                # This email already owns an account — send them back into it, not a duplicate.
+                if not topic.email_verified:
+                    topic.delete()          # discard the stray in-progress topic
+                target = existing
+            else:
+                form.save()                 # attach the email to this in-progress topic
+                target = topic
+                threading.Thread(target=_bg_scan, args=(target.pk,), daemon=True).start()
+
+            ev = EmailVerification.issue(target, email)
             if settings.DEBUG:
-                logger.warning("DEV: verification code for %s is %s", topic.email, ev.code)
-            send_code(topic.email, ev.code)
-            threading.Thread(target=_bg_scan, args=(topic.pk,), daemon=True).start()  # scan during the wait
-            return redirect('topic_verify', pk=topic.pk)
+                logger.warning("DEV: verification code for %s is %s", email, ev.code)
+            send_code(email, ev.code)
+            return redirect('topic_verify', pk=target.pk)
     else:
         form = TopicEmailForm(instance=topic)
     return render(request, 'email.html', {'topic': topic, 'form': form, 'step': 3})
-
 
 def topic_scan(request, pk):
     topic = get_object_or_404(Topic, pk=pk)
@@ -121,7 +136,7 @@ def topic_scan(request, pk):
         messages.success(request, "You're all set — here's what we found. We'll email you each morning.")
         return redirect('dashboard')
     return render(request, 'scanning.html', {'topic': topic})
-
+@_anonymous_only
 def topic_verify(request, pk):
     topic = get_object_or_404(Topic, pk=pk)
 
@@ -145,15 +160,17 @@ def topic_verify(request, pk):
         elif ev.attempts >= EmailVerification.MAX_ATTEMPTS:
             messages.error(request, "Too many tries. Request a fresh code.")
         elif code == ev.code:
+            was_new = not topic.email_verified
             ev.consumed = True
             ev.save(update_fields=['consumed'])
             topic.email_verified = True
             topic.save(update_fields=['email_verified'])
-            request.session['topic_id'] = topic.pk  # this is what scopes the dashboard in Step 4
-            try:
-                send_welcome(topic)
-            except Exception:
-                logger.exception("Welcome email failed for topic %s", topic.pk)
+            request.session['topic_id'] = topic.pk
+            if was_new:
+                try:
+                    send_welcome(topic)
+                except Exception:
+                    logger.exception("Welcome email failed for topic %s", topic.pk)
             return redirect('dashboard')
         else:
             ev.attempts += 1
@@ -164,10 +181,25 @@ def topic_verify(request, pk):
 
 # ── Dashboard ────────────────────────────────────────────────────────────────
 
+def _session_topic(request):
+    """The signed-in user's verified topic, or None."""
+    tid = request.session.get('topic_id')
+    return Topic.objects.filter(pk=tid, email_verified=True).first() if tid else None
+
+
+def _anonymous_only(view):
+    """Onboarding steps are for logged-out visitors; signed-in users go to their dashboard."""
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if _session_topic(request):
+            return redirect('dashboard')
+        return view(request, *args, **kwargs)
+    return wrapper
+
 def dashboard(request):
-    topic = Topic.objects.filter(pk=request.session.get('topic_id')).first()
+    topic = _session_topic(request)
     if topic is None:
-        return redirect('index')   # not signed in (no/expired session) → back to the front door
+        return redirect('index')
 
     status_filter = request.GET.get('status', 'new')
     if status_filter not in [s.value for s in MatchedItem.Status]:

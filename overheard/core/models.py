@@ -18,7 +18,13 @@ class Topic(models.Model):
 
     class Meta:
         ordering = ['-updated_at']
-
+        constraints = [
+            models.UniqueConstraint(
+                fields=['email'],
+                condition=models.Q(email_verified=True),
+                name='unique_verified_email',
+            ),
+        ]
 
 class MatchedItem(models.Model):
     class Platform(models.TextChoices):

@@ -23,6 +23,22 @@ from .models import MatchedItem, NotificationSettings, Topic
 logger = logging.getLogger(__name__)
 
 
+def _session_topic(request):
+    """The signed-in user's verified topic, or None."""
+    tid = request.session.get('topic_id')
+    return Topic.objects.filter(pk=tid, email_verified=True).first() if tid else None
+
+
+def _anonymous_only(view):
+    """Onboarding steps are for logged-out visitors; signed-in users go to their dashboard."""
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if _session_topic(request):
+            return redirect('dashboard')
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
 def index(request):
     return render(request, 'index.html')
 
@@ -136,6 +152,7 @@ def topic_scan(request, pk):
         messages.success(request, "You're all set — here's what we found. We'll email you each morning.")
         return redirect('dashboard')
     return render(request, 'scanning.html', {'topic': topic})
+
 @_anonymous_only
 def topic_verify(request, pk):
     topic = get_object_or_404(Topic, pk=pk)
@@ -180,21 +197,6 @@ def topic_verify(request, pk):
     return render(request, 'verify.html', {'topic': topic, 'step': 3, 'email': topic.email})
 
 # ── Dashboard ────────────────────────────────────────────────────────────────
-
-def _session_topic(request):
-    """The signed-in user's verified topic, or None."""
-    tid = request.session.get('topic_id')
-    return Topic.objects.filter(pk=tid, email_verified=True).first() if tid else None
-
-
-def _anonymous_only(view):
-    """Onboarding steps are for logged-out visitors; signed-in users go to their dashboard."""
-    @wraps(view)
-    def wrapper(request, *args, **kwargs):
-        if _session_topic(request):
-            return redirect('dashboard')
-        return view(request, *args, **kwargs)
-    return wrapper
 
 def dashboard(request):
     topic = _session_topic(request)
